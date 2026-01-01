@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,8 @@ export function CaptureDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const libraryInputRef = useRef<HTMLInputElement>(null);
 
   async function submit() {
     // Frontend validation
@@ -93,11 +95,43 @@ export function CaptureDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="evidence-file">Photo or Video Evidence *</Label>
+            <Label>Photo or Video Evidence *</Label>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 w-full sm:w-auto"
+                onClick={() => cameraInputRef.current?.click()}
+              >
+                <span className="whitespace-nowrap">📷 Take Photo/Video</span>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 w-full sm:w-auto"
+                onClick={() => libraryInputRef.current?.click()}
+              >
+                <span className="whitespace-nowrap">
+                  📁 Choose from Library
+                </span>
+              </Button>
+            </div>
             <Input
-              id="evidence-file"
+              ref={cameraInputRef}
               type="file"
               accept="image/*,video/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                setFile(e.target.files?.[0] ?? null);
+                setError(null);
+              }}
+            />
+            <Input
+              ref={libraryInputRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
               onChange={(e) => {
                 setFile(e.target.files?.[0] ?? null);
                 setError(null);
