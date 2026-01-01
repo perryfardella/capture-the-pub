@@ -19,12 +19,15 @@ export function useRealtimeGame() {
   // Initial load
   useEffect(() => {
     async function load() {
-      const [{ data: pubsData, error: pubsError }, { data: capturesData, error: capturesError }, { data: bonus, error: bonusError }] =
-        await Promise.all([
-          supabase.from("pubs").select("*"),
-          supabase.from("captures").select("*"),
-          supabase.from("bonus_points").select("*"),
-        ]);
+      const [
+        { data: pubsData, error: pubsError },
+        { data: capturesData, error: capturesError },
+        { data: bonus, error: bonusError },
+      ] = await Promise.all([
+        supabase.from("pubs").select("*"),
+        supabase.from("captures").select("*"),
+        supabase.from("bonus_points").select("*"),
+      ]);
 
       if (pubsError) {
         console.error("Error loading pubs:", pubsError);
