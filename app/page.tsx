@@ -23,6 +23,9 @@ export default function Home() {
   const [globalChallenges, setGlobalChallenges] = useState<any[]>([]);
   // TODO
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [completedChallenges, setCompletedChallenges] = useState<any[]>([]);
+  // TODO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [challengeAttempts, setChallengeAttempts] = useState<any[]>([]);
   // TODO
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -42,7 +45,20 @@ export default function Home() {
       setGlobalChallenges(data ?? []);
     }
 
+    async function loadCompletedChallenges() {
+      if (!player?.team_id) return;
+      const supabase = createSupabaseBrowserClient();
+      const { data } = await supabase
+        .from("challenges")
+        .select("*")
+        .eq("type", "global")
+        .eq("is_consumed", true)
+        .eq("completed_by_team_id", player.team_id);
+      setCompletedChallenges(data ?? []);
+    }
+
     loadGlobalChallenges();
+    loadCompletedChallenges();
 
     // Subscribe to global challenges updates
     const supabase = createSupabaseBrowserClient();
@@ -58,6 +74,7 @@ export default function Home() {
         },
         () => {
           loadGlobalChallenges();
+          loadCompletedChallenges();
         }
       )
       .subscribe();
@@ -65,7 +82,7 @@ export default function Home() {
     return () => {
       supabase.removeChannel(challengesChannel);
     };
-  }, []);
+  }, [player?.team_id]);
 
   useEffect(() => {
     async function loadTeams() {
@@ -232,92 +249,128 @@ export default function Home() {
         )}
         {activeTab === "activity" && <ActivityFeed feed={feed} />}
         {activeTab === "challenges" && (
-          <div className="space-y-4">
-            {globalChallenges.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-sm text-muted-foreground">
-                  No active global challenges
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {globalChallenges.map((c) => {
-                  const isTeamCompleted =
-                    player?.team_id &&
-                    c.completed_by_team_id === player.team_id;
-                  const isAvailable =
-                    isActive && !c.is_consumed && !isTeamCompleted;
+          <div className="space-y-6">
+            {/* Active Challenges */}
+            <div className="space-y-4">
+              {globalChallenges.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-sm text-muted-foreground">
+                    No active global challenges
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {globalChallenges.map((c) => {
+                    const isTeamCompleted =
+                      player?.team_id &&
+                      c.completed_by_team_id === player.team_id;
+                    const isAvailable =
+                      isActive && !c.is_consumed && !isTeamCompleted;
 
-                  return (
-                    <div
-                      key={c.id}
-                      className={`border rounded-xl p-5 space-y-4 transition-all ${
-                        isTeamCompleted
-                          ? "bg-muted/30 border-amber-200"
-                          : isAvailable
-                          ? "bg-gradient-to-br from-background to-muted/20 border-primary/20 shadow-sm"
-                          : "bg-muted/10 border-muted"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-lg ${
-                            isTeamCompleted
-                              ? "bg-amber-100 text-amber-600"
-                              : isAvailable
-                              ? "bg-primary/10 text-primary"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {isTeamCompleted ? "✓" : "🎯"}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <h3 className="font-semibold text-base leading-tight">
-                              {c.description}
-                            </h3>
-                            {isTeamCompleted && (
-                              <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
-                                Completed
-                              </span>
-                            )}
-                            {!isActive && (
-                              <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-muted text-muted-foreground">
-                                Inactive
-                              </span>
+                    return (
+                      <div
+                        key={c.id}
+                        className={`border rounded-xl p-5 space-y-4 transition-all ${
+                          isTeamCompleted
+                            ? "bg-muted/30 border-amber-200"
+                            : isAvailable
+                            ? "bg-gradient-to-br from-background to-muted/20 border-primary/20 shadow-sm"
+                            : "bg-muted/10 border-muted"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-lg ${
+                              isTeamCompleted
+                                ? "bg-amber-100 text-amber-600"
+                                : isAvailable
+                                ? "bg-primary/10 text-primary"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {isTeamCompleted ? "✓" : "🎯"}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <h3 className="font-semibold text-base leading-tight">
+                                {c.description}
+                              </h3>
+                              {isTeamCompleted && (
+                                <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
+                                  Completed
+                                </span>
+                              )}
+                              {!isActive && (
+                                <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-muted text-muted-foreground">
+                                  Inactive
+                                </span>
+                              )}
+                            </div>
+                            {isTeamCompleted ? (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Your team has already completed this challenge
+                              </p>
+                            ) : !isActive ? (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Game is currently inactive
+                              </p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Complete for a bonus point
+                              </p>
                             )}
                           </div>
-                          {isTeamCompleted ? (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Your team has already completed this challenge
-                            </p>
-                          ) : !isActive ? (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Game is currently inactive
-                            </p>
-                          ) : (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Complete for a bonus point
-                            </p>
-                          )}
+                        </div>
+
+                        {isAvailable && (
+                          <div className="pt-2 border-t">
+                            <ChallengeDialog
+                              challengeId={c.id}
+                              challengeType="global"
+                              description={c.description}
+                              disabled={!isActive || c.is_consumed}
+                              playerTeamId={player?.team_id}
+                              completedByTeamId={c.completed_by_team_id}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Completed Challenges Section */}
+            {completedChallenges.length > 0 && (
+              <div className="space-y-3 pt-4 border-t">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Completed by Your Team
+                </h2>
+                <div className="space-y-3">
+                  {completedChallenges.map((c) => (
+                    <div
+                      key={c.id}
+                      className="border rounded-xl p-4 bg-muted/20 border-amber-200/50"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-base bg-amber-100 text-amber-600">
+                          ✓
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="font-medium text-sm leading-tight text-muted-foreground">
+                              {c.description}
+                            </h3>
+                            <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
+                              Completed
+                            </span>
+                          </div>
                         </div>
                       </div>
-
-                      {isAvailable && (
-                        <div className="pt-2 border-t">
-                          <ChallengeDialog
-                            challengeId={c.id}
-                            challengeType="global"
-                            description={c.description}
-                            disabled={!isActive || c.is_consumed}
-                            playerTeamId={player?.team_id}
-                            completedByTeamId={c.completed_by_team_id}
-                          />
-                        </div>
-                      )}
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
             )}
           </div>

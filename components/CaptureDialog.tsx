@@ -8,6 +8,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 
@@ -87,6 +88,9 @@ export function CaptureDialog({
 
       <DialogContent>
         <DialogTitle>Capture {pubName}</DialogTitle>
+        <DialogDescription>
+          Submit photo or video evidence to capture this pub for your team.
+        </DialogDescription>
 
         <div className="space-y-4">
           <div className="space-y-2">

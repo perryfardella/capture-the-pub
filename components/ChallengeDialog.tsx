@@ -146,8 +146,8 @@ export function ChallengeDialog({
     <div className="space-y-3">
       {challengeType === "global" && challengeDescription && (
         <div className="space-y-3">
-          <div className="relative">
-            <label className="block text-sm font-medium mb-2">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">
               Upload Photo or Video *
             </label>
             <div className="relative">
@@ -157,11 +157,11 @@ export function ChallengeDialog({
                 accept="image/*,video/*"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                 disabled={!!isTeamCompleted}
-                className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
               />
             </div>
             {file && (
-              <div className="mt-2 p-2 bg-muted rounded-md flex items-center justify-between">
+              <div className="p-2 bg-muted rounded-md flex items-center justify-between gap-2">
                 <span className="text-xs text-muted-foreground truncate flex-1">
                   {file.name}
                 </span>
@@ -171,7 +171,7 @@ export function ChallengeDialog({
                     setFile(null);
                     setFileInputKey((prev) => prev + 1);
                   }}
-                  className="ml-2 text-xs text-muted-foreground hover:text-foreground"
+                  className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
                 >
                   Remove
                 </button>
@@ -231,13 +231,19 @@ export function ChallengeDialog({
             </div>
           )}
 
-          <Input
-            key={fileInputKey}
-            type="file"
-            accept="image/*,video/*"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            disabled={!!isTeamCompleted}
-          />
+          <div className="space-y-2">
+            <label className="block text-sm font-medium">
+              Upload Photo or Video *
+            </label>
+            <Input
+              key={fileInputKey}
+              type="file"
+              accept="image/*,video/*"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              disabled={!!isTeamCompleted}
+              className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
+            />
+          </div>
 
           <Button
             disabled={isDisabled || (step === "result" && success === null)}

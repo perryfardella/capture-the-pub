@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 // TODO
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -11,6 +16,14 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
 
   return (
     <>
+      <style jsx>{`
+        :global([data-slot="dialog-content"]) img,
+        :global([data-slot="dialog-content"]) video,
+        :global([data-slot="dialog-content"]) span {
+          border: none !important;
+          outline: none !important;
+        }
+      `}</style>
       <div className="space-y-1.5">
         {feed.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-4">
@@ -120,24 +133,40 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                 {item.media_url && (
                   <button
                     onClick={() => setPreviewMedia(item.media_url)}
-                    className="mt-1.5 rounded overflow-hidden bg-muted/30 w-full text-left cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                    className="mt-1.5 rounded overflow-hidden w-full text-left cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary border-0 p-0 block"
+                    style={{ border: "none", outline: "none" }}
                   >
                     {item.media_url.endsWith(".mp4") ? (
                       <video
                         src={item.media_url}
-                        className="w-full max-h-48 object-cover pointer-events-none"
+                        className="w-full max-h-48 object-cover pointer-events-none block border-0 outline-0"
+                        style={{
+                          border: "none",
+                          outline: "none",
+                          display: "block",
+                        }}
                         playsInline
                         muted
                       />
                     ) : (
-                      <Image
-                        src={item.media_url}
-                        alt="evidence"
-                        width={400}
-                        height={300}
-                        className="w-full max-h-48 object-cover pointer-events-none"
-                        unoptimized
-                      />
+                      <div
+                        className="w-full border-0 outline-0"
+                        style={{ border: "none", outline: "none" }}
+                      >
+                        <Image
+                          src={item.media_url}
+                          alt="evidence"
+                          width={400}
+                          height={300}
+                          className="w-full max-h-48 object-cover pointer-events-none block border-0 outline-0"
+                          style={{
+                            border: "none",
+                            outline: "none",
+                            display: "block",
+                          }}
+                          unoptimized
+                        />
+                      </div>
                     )}
                   </button>
                 )}
@@ -152,29 +181,49 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
         open={!!previewMedia}
         onOpenChange={(open) => !open && setPreviewMedia(null)}
       >
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-2 bg-black/95">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-0 rounded-none">
           <DialogTitle className="sr-only">
             {previewMedia?.endsWith(".mp4") ? "Video Preview" : "Image Preview"}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {previewMedia?.endsWith(".mp4")
+              ? "Video evidence preview"
+              : "Image evidence preview"}
+          </DialogDescription>
           {previewMedia && (
-            <div className="flex items-center justify-center w-full h-full">
+            <div className="flex items-center justify-center w-full h-full border-0 p-0">
               {previewMedia.endsWith(".mp4") ? (
                 <video
                   src={previewMedia}
                   controls
                   autoPlay
-                  className="max-w-full max-h-[90vh] w-auto h-auto"
+                  className="max-w-full max-h-[90vh] w-auto h-auto border-0 outline-0"
+                  style={{ border: "none", outline: "none" }}
                   playsInline
                 />
               ) : (
-                <Image
-                  src={previewMedia}
-                  alt="Preview"
-                  width={1200}
-                  height={1200}
-                  className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                  unoptimized
-                />
+                <div
+                  className="border-0 outline-0 bg-transparent [&_span]:border-0 [&_span]:outline-0 [&_span]:bg-transparent [&_img]:border-0 [&_img]:outline-0"
+                  style={{
+                    border: "none",
+                    outline: "none",
+                    background: "transparent",
+                  }}
+                >
+                  <Image
+                    src={previewMedia}
+                    alt="Preview"
+                    width={1200}
+                    height={1200}
+                    className="max-w-full max-h-[90vh] w-auto h-auto object-contain border-0 outline-0"
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      display: "block",
+                    }}
+                    unoptimized
+                  />
+                </div>
               )}
             </div>
           )}
