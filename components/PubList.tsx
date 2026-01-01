@@ -1,17 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { ChallengeDialog } from "./ChallengeDialog";
 import { CaptureDialog } from "./CaptureDialog";
 import { useGameState } from "@/lib/hooks/useGameState";
-import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 
 interface Team {
   id: string;
@@ -39,7 +30,6 @@ interface PubListProps {
 
 export function PubList({ pubs, teams }: PubListProps) {
   const { isActive } = useGameState();
-  const [openChallengeId, setOpenChallengeId] = useState<string | null>(null);
 
   return (
     <div className="space-y-3">
@@ -82,42 +72,15 @@ export function PubList({ pubs, teams }: PubListProps) {
                   />
 
                   {pub.challenge && (
-                    <Sheet
-                      open={openChallengeId === pub.challenge.id}
-                      onOpenChange={(open) =>
-                        setOpenChallengeId(open ? pub.challenge!.id : null)
-                      }
-                    >
-                      <SheetTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={pub.is_locked || !isActive}
-                          className="text-xs"
-                        >
-                          🎯 Challenge
-                        </Button>
-                      </SheetTrigger>
-                      <SheetContent
-                        side="bottom"
-                        className="h-[85vh] max-h-[600px]"
-                      >
-                        <SheetHeader>
-                          <SheetTitle>{pub.name} Challenge</SheetTitle>
-                        </SheetHeader>
-                        <div className="mt-6">
-                          <ChallengeDialog
-                            challengeId={pub.challenge.id}
-                            challengeType="pub"
-                            pubId={pub.id}
-                            pubName={pub.name}
-                            description={pub.challenge.description}
-                            disabled={pub.is_locked || !isActive}
-                            onSuccess={() => setOpenChallengeId(null)}
-                          />
-                        </div>
-                      </SheetContent>
-                    </Sheet>
+                    <ChallengeDialog
+                      challengeId={pub.challenge.id}
+                      challengeType="pub"
+                      pubId={pub.id}
+                      pubName={pub.name}
+                      description={pub.challenge.description}
+                      disabled={pub.is_locked || !isActive}
+                      onSuccess={() => {}}
+                    />
                   )}
                 </div>
               </div>
