@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 // TODO
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ActivityFeed({ feed }: { feed: any[] }) {
@@ -36,11 +38,13 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                   className="w-full rounded"
                 />
               ) : (
-                // TODO: use Next image here instead of img
-                <img
+                <Image
                   src={item.media_url}
                   alt="evidence"
+                  width={800}
+                  height={600}
                   className="w-full rounded"
+                  unoptimized
                 />
               )}
             </>
