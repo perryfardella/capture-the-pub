@@ -1,58 +1,80 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { PlayerTable } from "@/components/admin/PlayerTable";
+import { PubTable } from "@/components/admin/PubTable";
+import { ChallengeTable } from "@/components/admin/ChallengeTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function AdminPage() {
   const supabase = createSupabaseBrowserClient();
-  const [password, setPassword] = useState("");
   const [authorized, setAuthorized] = useState(false);
-  const [isActive, setIsActive] = useState(false);
+  const [password, setPassword] = useState("");
+  const [tab, setTab] = useState<"players" | "pubs" | "challenges" | "game">(
+    "players"
+  );
 
-  const loadState = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("game_state")
-      .select("is_active")
-      .single();
+  // TODO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [players, setPlayers] = useState<any[]>([]);
+  // TODO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [teams, setTeams] = useState<any[]>([]);
+  // TODO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [pubs, setPubs] = useState<any[]>([]);
+  // TODO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [challenges, setChallenges] = useState<any[]>([]);
+  const [gameState, setGameState] = useState(false);
 
-    if (error) {
-      console.error("Error loading game state:", error);
-      alert(`Failed to load game state: ${error.message}`);
-      return;
-    }
-
-    console.log("Loaded game state:", data);
-    setIsActive(data?.is_active ?? false);
-  }, [supabase]);
+  async function loadData() {
+    const [
+      { data: playersData },
+      { data: teamsData },
+      { data: pubsData },
+      { data: challengesData },
+      { data: game },
+    ] = await Promise.all([
+      supabase.from("players").select("*"),
+      supabase.from("teams").select("*"),
+      supabase.from("pubs").select("*"),
+      supabase.from("challenges").select("*"),
+      supabase.from("game_state").select("is_active").single(),
+    ]);
+    setPlayers(playersData ?? []);
+    setTeams(teamsData ?? []);
+    setPubs(pubsData ?? []);
+    setChallenges(challengesData ?? []);
+    setGameState(game?.is_active ?? false);
+  }
 
   useEffect(() => {
-    async function load() {
-      if (!authorized) return;
-      await loadState();
+    if (authorized) {
+      async function load() {
+        await loadData();
+      }
+      load();
     }
-    load().catch((error) => {
-      console.error(error);
-    });
-  }, [authorized, loadState]);
+  }, [authorized]);
 
   if (!authorized) {
     return (
       <div className="p-4 space-y-4">
+        <h1 className="text-xl font-bold">Admin Login</h1>
         <Input
           type="password"
-          placeholder="Admin password"
+          placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
         <Button
           onClick={() => {
-            if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
+            if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD)
               setAuthorized(true);
-            } else {
-              alert("Wrong password");
-            }
+            else alert("Wrong password");
           }}
         >
           Enter
@@ -65,37 +87,47 @@ export default function AdminPage() {
     <div className="p-4 space-y-4">
       <h1 className="text-xl font-bold">Admin Panel</h1>
 
-      <p>
-        Game status: <strong>{isActive ? "Active" : "Inactive"}</strong>
-      </p>
+      {/* Tabs */}
+      <div className="flex gap-2">
+        {["players", "pubs", "challenges", "game"].map((t) => (
+          <Button
+            key={t}
+            onClick={() =>
+              setTab(t as "players" | "pubs" | "challenges" | "game")
+            }
+          >
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </Button>
+        ))}
+      </div>
 
-      <Button
-        onClick={async () => {
-          console.log("Toggling game state...");
-
-          // Use RPC function to toggle game state
-          // This avoids the issue with boolean primary key filtering in PostgREST
-          const { data, error } = await supabase.rpc("toggle_game_state");
-
-          if (error) {
-            console.error("Error toggling game state:", error);
-            alert(`Failed to toggle game state: ${error.message}`);
-            return;
-          }
-
-          console.log("Game state toggled successfully:", data);
-
-          // Update local state from the returned data
-          if (data) {
-            setIsActive(data.is_active);
-          } else {
-            // Fallback: reload from DB
-            await loadState();
-          }
-        }}
-      >
-        Toggle Game
-      </Button>
+      <div className="mt-4">
+        {tab === "players" && (
+          <PlayerTable players={players} teams={teams} reload={loadData} />
+        )}
+        {tab === "pubs" && (
+          <PubTable pubs={pubs} teams={teams} reload={loadData} />
+        )}
+        {tab === "challenges" && (
+          <ChallengeTable challenges={challenges} reload={loadData} />
+        )}
+        {tab === "game" && (
+          <div className="space-y-2">
+            <p>Game is currently: {gameState ? "Active" : "Inactive"}</p>
+            <Button
+              onClick={async () => {
+                await supabase
+                  .from("game_state")
+                  .update({ is_active: !gameState })
+                  .eq("id", true);
+                setGameState(!gameState);
+              }}
+            >
+              Toggle Game
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
