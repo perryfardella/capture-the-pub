@@ -30,7 +30,6 @@ export function PubList({ pubs, teams }: PubListProps) {
 
   return (
     <div className="space-y-3">
-      <h2 className="text-lg font-bold">Pubs</h2>
       {pubs.length === 0 ? (
         <p className="text-sm text-muted-foreground">No pubs available</p>
       ) : (

@@ -72,15 +72,6 @@ export function Scoreboard({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Scoreboard</h2>
-        {scores.length > 0 && (
-          <span className="text-sm text-muted-foreground">
-            {scores.length} {scores.length === 1 ? "team" : "teams"}
-          </span>
-        )}
-      </div>
-
       {scores.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-2">No scores yet</p>

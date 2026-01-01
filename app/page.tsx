@@ -50,9 +50,12 @@ export default function Home() {
     loadTeams();
   }, []);
 
-  // Merge feed items
+  // Merge feed items with pub names
   const feed = [
-    ...captures.map((c) => ({ ...c, type: "capture" })),
+    ...captures.map((c) => {
+      const pub = pubs.find((p) => p.id === c.pub_id);
+      return { ...c, type: "capture", pubName: pub?.name || c.pub_id };
+    }),
     ...bonusPoints.map((b) => ({ ...b, type: "bonus" })),
     // challenge attempts handled in Phase 8
   ].sort(
@@ -111,6 +114,16 @@ export default function Home() {
         </div>
       )}
 
+      {/* Sticky Tab Title */}
+      <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
+        <h2 className="text-lg font-bold">
+          {activeTab === "pubs" && "Pubs"}
+          {activeTab === "scoreboard" && "Scoreboard"}
+          {activeTab === "activity" && "Activity Feed"}
+          {activeTab === "challenges" && "Global Challenges"}
+        </h2>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === "pubs" && <PubList pubs={pubs} teams={teams} />}
         {activeTab === "scoreboard" && (
@@ -119,7 +132,6 @@ export default function Home() {
         {activeTab === "activity" && <ActivityFeed feed={feed} />}
         {activeTab === "challenges" && (
           <div className="space-y-3">
-            <h2 className="text-lg font-bold">Global Challenges</h2>
             {globalChallenges.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No active challenges

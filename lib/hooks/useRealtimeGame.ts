@@ -15,6 +15,9 @@ export function useRealtimeGame() {
   // TODO
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [bonusPoints, setBonusPoints] = useState<any[]>([]);
+  // TODO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [teams, setTeams] = useState<any[]>([]);
 
   // Initial load
   useEffect(() => {
@@ -23,10 +26,12 @@ export function useRealtimeGame() {
         { data: pubsData, error: pubsError },
         { data: capturesData, error: capturesError },
         { data: bonus, error: bonusError },
+        { data: teamsData, error: teamsError },
       ] = await Promise.all([
         supabase.from("pubs").select("*"),
         supabase.from("captures").select("*"),
         supabase.from("bonus_points").select("*"),
+        supabase.from("teams").select("*"),
       ]);
 
       if (pubsError) {
@@ -38,18 +43,54 @@ export function useRealtimeGame() {
       if (capturesError) {
         console.error("Error loading captures:", capturesError);
       } else {
-        setCaptures(capturesData ?? []);
+        // Manually join team data
+        const capturesWithTeams = (capturesData ?? []).map((capture) => {
+          const team = (teamsData ?? []).find((t) => t.id === capture.team_id);
+          return { ...capture, teams: team };
+        });
+        setCaptures(capturesWithTeams);
       }
 
       if (bonusError) {
         console.error("Error loading bonus points:", bonusError);
       } else {
-        setBonusPoints(bonus ?? []);
+        // Manually join team data
+        const bonusWithTeams = (bonus ?? []).map((bp) => {
+          const team = (teamsData ?? []).find((t) => t.id === bp.team_id);
+          return { ...bp, teams: team };
+        });
+        setBonusPoints(bonusWithTeams);
+      }
+
+      if (teamsError) {
+        console.error("Error loading teams:", teamsError);
+      } else {
+        setTeams(teamsData ?? []);
       }
     }
 
     load();
   }, [supabase]);
+
+  // Re-join teams when teams data changes
+  useEffect(() => {
+    if (teams.length > 0) {
+      setCaptures((prev) =>
+        prev.map((capture) => {
+          if (capture.teams) return capture; // Already has team data
+          const team = teams.find((t) => t.id === capture.team_id);
+          return { ...capture, teams: team || null };
+        })
+      );
+      setBonusPoints((prev) =>
+        prev.map((bp) => {
+          if (bp.teams) return bp; // Already has team data
+          const team = teams.find((t) => t.id === bp.team_id);
+          return { ...bp, teams: team || null };
+        })
+      );
+    }
+  }, [teams]);
 
   // Subscribe to pubs
   useEffect(() => {
@@ -94,13 +135,30 @@ export function useRealtimeGame() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "captures" },
-        (payload) => {
+        async (payload) => {
           if (payload.eventType === "INSERT") {
-            setCaptures((prev) => [...prev, payload.new as any]);
+            // Fetch team data for the new capture
+            const { data: teamData } = await supabase
+              .from("teams")
+              .select("*")
+              .eq("id", (payload.new as any).team_id)
+              .single();
+            setCaptures((prev) => [
+              ...prev,
+              { ...payload.new, teams: teamData || null } as any,
+            ]);
           } else if (payload.eventType === "UPDATE") {
+            // Fetch team data for the updated capture
+            const { data: teamData } = await supabase
+              .from("teams")
+              .select("*")
+              .eq("id", (payload.new as any).team_id)
+              .single();
             setCaptures((prev) =>
               prev.map((c) =>
-                c.id === (payload.new as { id: string }).id ? payload.new : c
+                c.id === (payload.new as { id: string }).id
+                  ? { ...payload.new, teams: teamData || null }
+                  : c
               )
             );
           } else if (payload.eventType === "DELETE") {
@@ -130,13 +188,30 @@ export function useRealtimeGame() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "bonus_points" },
-        (payload) => {
+        async (payload) => {
           if (payload.eventType === "INSERT") {
-            setBonusPoints((prev) => [...prev, payload.new as any]);
+            // Fetch team data for the new bonus point
+            const { data: teamData } = await supabase
+              .from("teams")
+              .select("*")
+              .eq("id", (payload.new as any).team_id)
+              .single();
+            setBonusPoints((prev) => [
+              ...prev,
+              { ...payload.new, teams: teamData || null } as any,
+            ]);
           } else if (payload.eventType === "UPDATE") {
+            // Fetch team data for the updated bonus point
+            const { data: teamData } = await supabase
+              .from("teams")
+              .select("*")
+              .eq("id", (payload.new as any).team_id)
+              .single();
             setBonusPoints((prev) =>
               prev.map((b) =>
-                b.id === (payload.new as { id: string }).id ? payload.new : b
+                b.id === (payload.new as { id: string }).id
+                  ? { ...payload.new, teams: teamData || null }
+                  : b
               )
             );
           } else if (payload.eventType === "DELETE") {
