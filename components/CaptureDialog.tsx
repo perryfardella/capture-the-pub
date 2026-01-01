@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,124 +26,12 @@ export function CaptureDialog({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [mediaType, setMediaType] = useState<"photo" | "video">("photo");
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<Blob[]>([]);
-  const libraryInputRef = useRef<HTMLInputElement>(null);
-
-  async function startCamera() {
-    try {
-      setError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }, // Prefer back camera on mobile
-        audio: mediaType === "video",
-      });
-
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
-      }
-      setCameraActive(true);
-    } catch (err) {
-      setError(
-        "Could not access camera. Please check permissions and try again."
-      );
-      console.error("Camera error:", err);
-    }
-  }
-
-  function stopCamera() {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-    setCameraActive(false);
-    setIsRecording(false);
-  }
-
-  function capturePhoto() {
-    if (!videoRef.current) return;
-
-    const canvas = document.createElement("canvas");
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.drawImage(videoRef.current, 0, 0);
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const file = new File([blob], `capture-${Date.now()}.jpg`, {
-          type: "image/jpeg",
-        });
-        setFile(file);
-        stopCamera();
-      }
-    }, "image/jpeg");
-  }
-
-  function startRecording() {
-    if (!streamRef.current || !videoRef.current) return;
-
-    recordedChunksRef.current = [];
-    const mediaRecorder = new MediaRecorder(streamRef.current, {
-      mimeType: MediaRecorder.isTypeSupported("video/webm")
-        ? "video/webm"
-        : "video/mp4",
-    });
-
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) {
-        recordedChunksRef.current.push(e.data);
-      }
-    };
-
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(recordedChunksRef.current, {
-        type: mediaRecorder.mimeType,
-      });
-      const file = new File(
-        [blob],
-        `capture-${Date.now()}.${
-          mediaRecorder.mimeType.includes("webm") ? "webm" : "mp4"
-        }`,
-        { type: blob.type }
-      );
-      setFile(file);
-      stopCamera();
-    };
-
-    mediaRecorderRef.current = mediaRecorder;
-    mediaRecorder.start();
-    setIsRecording(true);
-  }
-
-  function stopRecording() {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-    }
-  }
-
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, []);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleOpenChange(newOpen: boolean) {
     setOpen(newOpen);
     if (!newOpen) {
-      // Clean up when dialog closes
-      stopCamera();
+      // Reset form when dialog closes
       setFile(null);
       setError(null);
     }
@@ -210,113 +98,16 @@ export function CaptureDialog({
 
           <div className="space-y-2">
             <Label>Photo or Video Evidence *</Label>
-
-            {!cameraActive && !file && (
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 w-full sm:w-auto"
-                  onClick={startCamera}
-                >
-                  <span className="whitespace-nowrap">📷 Take Photo/Video</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1 w-full sm:w-auto"
-                  onClick={() => libraryInputRef.current?.click()}
-                >
-                  <span className="whitespace-nowrap">
-                    📁 Choose from Library
-                  </span>
-                </Button>
-              </div>
-            )}
-
-            {cameraActive && (
-              <div className="space-y-2">
-                <div className="relative w-full bg-black rounded-lg overflow-hidden">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full max-h-[400px] object-contain"
-                  />
-                  {isRecording && (
-                    <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-sm font-semibold flex items-center gap-1">
-                      <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                      Recording...
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2">
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant={mediaType === "photo" ? "default" : "outline"}
-                      className="flex-1"
-                      onClick={() => setMediaType("photo")}
-                      disabled={isRecording}
-                    >
-                      Photo
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={mediaType === "video" ? "default" : "outline"}
-                      className="flex-1"
-                      onClick={() => setMediaType("video")}
-                      disabled={isRecording}
-                    >
-                      Video
-                    </Button>
-                  </div>
-                  <div className="flex gap-2">
-                    {mediaType === "photo" ? (
-                      <Button
-                        type="button"
-                        onClick={capturePhoto}
-                        className="flex-1"
-                      >
-                        📸 Capture Photo
-                      </Button>
-                    ) : (
-                      <>
-                        {!isRecording ? (
-                          <Button
-                            type="button"
-                            onClick={startRecording}
-                            className="flex-1"
-                          >
-                            🎥 Start Recording
-                          </Button>
-                        ) : (
-                          <Button
-                            type="button"
-                            onClick={stopRecording}
-                            variant="destructive"
-                            className="flex-1"
-                          >
-                            ⏹️ Stop Recording
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={stopCamera}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              📁 Choose Photo or Video from Library
+            </Button>
             <Input
-              ref={libraryInputRef}
+              ref={fileInputRef}
               type="file"
               accept="image/*,video/*"
               className="hidden"
@@ -325,7 +116,7 @@ export function CaptureDialog({
                 setError(null);
               }}
             />
-            {file && !cameraActive && (
+            {file && (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">
                   Selected: {file.name}
