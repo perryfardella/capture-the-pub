@@ -1,5 +1,8 @@
 "use client";
 
+import { CaptureDialog } from "@/components/CaptureDialog";
+import { useGameState } from "@/lib/hooks/useGameState";
+
 export function PubList({
   pubs,
   teams,
@@ -14,6 +17,8 @@ export function PubList({
   function teamColor(teamId?: string) {
     return teams.find((t) => t.id === teamId)?.color;
   }
+
+  const { isActive } = useGameState();
 
   return (
     <div className="space-y-2">
@@ -36,7 +41,14 @@ export function PubList({
             </p>
           </div>
 
-          {pub.is_locked && <span>🔒</span>}
+          <div className="flex items-center gap-2">
+            {pub.is_locked && <span>🔒</span>}
+            <CaptureDialog
+              pubId={pub.id}
+              pubName={pub.name}
+              disabled={pub.is_locked || !isActive}
+            />
+          </div>
         </div>
       ))}
     </div>
