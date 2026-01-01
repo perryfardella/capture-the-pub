@@ -37,22 +37,55 @@ export default function JoinPage() {
     }
 
     setLoading(true);
-    console.log("Attempting to insert player...");
 
-    const { data: player, error } = await supabase
+    // Normalize nickname: trim whitespace and convert to lowercase for comparison
+    const normalizedNickname = nickname.trim();
+    const normalizedLower = normalizedNickname.toLowerCase();
+
+    // First, check if a player with this nickname already exists (case-insensitive)
+    // We need to fetch all players and filter client-side since Supabase JS doesn't
+    // directly support case-insensitive filtering
+    const { data: allPlayers, error: fetchError } = await supabase
       .from("players")
-      .insert({ nickname, team_id: teamId })
-      .select()
-      .single();
+      .select("*");
 
-    if (error) {
-      console.error("Error inserting player:", error);
-      alert(error.message);
+    if (fetchError) {
+      console.error("Error fetching players:", fetchError);
+      alert("Error checking for existing player. Please try again.");
       setLoading(false);
       return;
     }
 
-    console.log("Player created successfully:", player);
+    // Find existing player with case-insensitive nickname match
+    const existingPlayer = allPlayers?.find(
+      (p) => p.nickname.trim().toLowerCase() === normalizedLower
+    );
+
+    let player;
+
+    if (existingPlayer) {
+      // Player with this nickname already exists - reuse them
+      console.log("Found existing player:", existingPlayer);
+      player = existingPlayer;
+    } else {
+      // No existing player - create a new one
+      console.log("Creating new player...");
+      const { data: newPlayer, error } = await supabase
+        .from("players")
+        .insert({ nickname: normalizedNickname, team_id: teamId })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error inserting player:", error);
+        alert(error.message);
+        setLoading(false);
+        return;
+      }
+
+      player = newPlayer;
+      console.log("Player created successfully:", player);
+    }
 
     // Store player_id locally
     localStorage.setItem("player_id", player.id);
