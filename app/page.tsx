@@ -2,14 +2,14 @@
 
 import { PubList } from "@/components/PubList";
 import { Scoreboard } from "@/components/Scoreboard";
-import { useGameData } from "@/lib/hooks/useGameData";
 import { usePlayer } from "@/lib/hooks/usePlayer";
+import { useRealtimeGame } from "@/lib/hooks/useRealtimeGame";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Home() {
   const { player, loading } = usePlayer();
-  const { teams, pubs, bonusPoints } = useGameData();
+  const { pubs, captures, bonusPoints } = useRealtimeGame();
 
   const router = useRouter();
 
@@ -24,9 +24,8 @@ export default function Home() {
 
   return (
     <div className="p-4 space-y-6">
-      <Scoreboard teams={teams} pubs={pubs} bonusPoints={bonusPoints} />
-
-      <PubList pubs={pubs} teams={teams} />
+      <Scoreboard teams={[]} pubs={pubs} bonusPoints={bonusPoints} />
+      <PubList pubs={pubs} teams={[]} />
     </div>
   );
 }
