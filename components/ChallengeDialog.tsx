@@ -1,8 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useMediaUpload } from "@/lib/hooks/useMediaUpload";
 
@@ -29,6 +37,8 @@ export function ChallengeDialog({
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
+  const [open, setOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<"start" | "result">(
     challengeType === "pub" ? "start" : "result"
   );
@@ -45,6 +55,16 @@ export function ChallengeDialog({
     reset: resetUpload,
     setError: setUploadError,
   } = useMediaUpload();
+
+  function handleOpenChange(newOpen: boolean) {
+    setOpen(newOpen);
+    if (!newOpen) {
+      // Reset form when dialog closes
+      setFile(null);
+      setFileInputKey((prev) => prev + 1);
+      resetUpload();
+    }
+  }
 
   // Fetch challenge description if not provided
   useEffect(() => {
@@ -145,8 +165,12 @@ export function ChallengeDialog({
           }
         }
       } else {
-        alert("Global challenge completed! Bonus point awarded.");
-        onSuccess?.(); // Close sheet on completion
+        // Global challenge completed
+        setFile(null);
+        setFileInputKey((prev) => prev + 1);
+        resetUpload();
+        setOpen(false);
+        onSuccess?.();
       }
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");
@@ -154,10 +178,11 @@ export function ChallengeDialog({
   }
 
   // Check if player's team already completed this global challenge
-  const isTeamCompleted =
+  const isTeamCompleted = Boolean(
     challengeType === "global" &&
-    playerTeamId &&
-    completedByTeamId === playerTeamId;
+      playerTeamId &&
+      completedByTeamId === playerTeamId
+  );
   const isDisabled =
     disabled ||
     loading ||
@@ -165,80 +190,113 @@ export function ChallengeDialog({
     (challengeType === "pub" && step === "start" && !file) ||
     (challengeType === "global" && !file);
 
-  return (
-    <div className="space-y-3">
-      {challengeType === "global" && challengeDescription && (
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">
-              Upload Photo or Video *
-            </label>
-            <div className="relative">
+  // Global challenge dialog UI
+  if (challengeType === "global") {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>
+          <Button
+            disabled={Boolean(disabled || isTeamCompleted)}
+            className="w-full"
+          >
+            Complete Challenge
+          </Button>
+        </DialogTrigger>
+
+        <DialogContent>
+          <DialogTitle>Complete Challenge</DialogTitle>
+          <DialogDescription>
+            {challengeDescription ||
+              "Upload photo or video evidence to complete this challenge and earn a bonus point."}
+          </DialogDescription>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Complete this challenge to earn <strong>+1 bonus point</strong>{" "}
+                for your team.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Photo or Video Evidence *</Label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+              >
+                📁 Choose Photo or Video from Library
+              </Button>
               <Input
+                ref={fileInputRef}
                 key={fileInputKey}
                 type="file"
                 accept="image/*,video/*"
+                className="hidden"
                 onChange={(e) => {
                   setFile(e.target.files?.[0] ?? null);
                   resetUpload();
                 }}
-                disabled={!!isTeamCompleted || loading}
-                className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
+                disabled={loading}
               />
-            </div>
-            {file && (
-              <div className="space-y-2">
-                <div className="p-2 bg-muted rounded-md flex items-center justify-between gap-2">
-                  <span className="text-xs text-muted-foreground truncate flex-1">
-                    {file.name} ({(file.size / 1024 / 1024).toFixed(2)}MB)
-                  </span>
-                  <button
+              {file && (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Selected: {file.name} (
+                    {(file.size / 1024 / 1024).toFixed(2)}
+                    MB)
+                  </p>
+                  {uploadProgress !== null && (
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>Uploading...</span>
+                        <span>{Math.round(uploadProgress)}%</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => {
                       setFile(null);
                       setFileInputKey((prev) => prev + 1);
                       resetUpload();
                     }}
                     disabled={loading}
-                    className="shrink-0 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
                   >
                     Remove
-                  </button>
+                  </Button>
                 </div>
-                {uploadProgress !== null && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Uploading...</span>
-                      <span>{Math.round(uploadProgress)}%</span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-all duration-300"
-                        style={{ width: `${uploadProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
+
             {error && (
               <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
                 {error}
               </div>
             )}
+
+            <Button disabled={isDisabled} onClick={submit} className="w-full">
+              {loading ? "Submitting..." : "Submit Challenge"}
+            </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
-          <Button
-            disabled={isDisabled}
-            onClick={submit}
-            className="w-full"
-            size="lg"
-          >
-            {loading ? "Submitting..." : "Submit Challenge Completion"}
-          </Button>
-        </div>
-      )}
-
+  // Pub challenge UI (unchanged)
+  return (
+    <div className="space-y-3">
       {challengeType === "pub" && (
         <>
           {challengeDescription && (

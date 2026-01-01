@@ -340,7 +340,7 @@ export default function Home() {
                     return (
                       <div
                         key={c.id}
-                        className={`border rounded-xl p-5 space-y-4 transition-all ${
+                        className={`border rounded-xl p-4 transition-all ${
                           isTeamCompleted
                             ? "bg-muted/30 border-amber-200"
                             : isAvailable
@@ -348,7 +348,7 @@ export default function Home() {
                             : "bg-muted/10 border-muted"
                         }`}
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-3 mb-3">
                           <div
                             className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-lg ${
                               isTeamCompleted
@@ -393,16 +393,14 @@ export default function Home() {
                         </div>
 
                         {isAvailable && (
-                          <div className="pt-2 border-t">
-                            <ChallengeDialog
-                              challengeId={c.id}
-                              challengeType="global"
-                              description={c.description}
-                              disabled={!isActive || c.is_consumed}
-                              playerTeamId={player?.team_id}
-                              completedByTeamId={c.completed_by_team_id}
-                            />
-                          </div>
+                          <ChallengeDialog
+                            challengeId={c.id}
+                            challengeType="global"
+                            description={c.description}
+                            disabled={!isActive || c.is_consumed}
+                            playerTeamId={player?.team_id}
+                            completedByTeamId={c.completed_by_team_id}
+                          />
                         )}
                       </div>
                     );
