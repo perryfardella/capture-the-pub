@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 
 export async function POST(req: Request) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceRoleClient();
 
   const formData = await req.formData();
   const pubId = formData.get("pubId") as string;
@@ -22,17 +22,8 @@ export async function POST(req: Request) {
     return new NextResponse("Game inactive", { status: 403 });
   }
 
-  // Restore player
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const playerId =
-    // TODO
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (user?.user_metadata as any)?.player_id ??
-    (await supabase.auth.getSession()).data.session?.user?.user_metadata
-      ?.player_id;
+  // Get player_id from request
+  const playerId = formData.get("playerId") as string;
 
   if (!playerId) {
     return new NextResponse("No player session", { status: 401 });

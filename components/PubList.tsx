@@ -46,6 +46,7 @@ export function PubList({
             <CaptureDialog
               pubId={pub.id}
               pubName={pub.name}
+              currentDrinkCount={pub.drink_count}
               disabled={pub.is_locked || !isActive}
             />
           </div>
