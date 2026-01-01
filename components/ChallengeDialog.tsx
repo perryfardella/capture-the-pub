@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { compressMedia } from "@/lib/utils/media-compression";
 
 export function ChallengeDialog({
   challengeId,
@@ -80,54 +81,96 @@ export function ChallengeDialog({
       return;
     }
 
-    const formData = new FormData();
-    formData.append("challengeId", challengeId);
-    formData.append("step", step);
-    formData.append("playerId", playerId);
-    if (pubId) formData.append("pubId", pubId);
-    if (file) formData.append("file", file);
-    if (step === "result" && success !== null) {
-      formData.append("success", success.toString());
-    }
+    try {
+      let mediaUrl: string | null = null;
 
-    const res = await fetch("/api/challenge", {
-      method: "POST",
-      body: formData,
-    });
+      // Upload file directly to Supabase Storage if provided
+      if (file) {
+        const supabase = createSupabaseBrowserClient();
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      alert(errorText);
-      setLoading(false);
-      return;
-    }
+        // Compress media file
+        const compressedFile = await compressMedia(file, {
+          maxImageSizeMB: 5,
+          maxVideoSizeMB: 20,
+          imageQuality: 0.8,
+          maxImageWidth: 1920,
+          maxImageHeight: 1920,
+        });
 
-    // Success - clear file and update state
-    setFile(null);
-    setFileInputKey((prev) => prev + 1); // Reset file input
-    if (challengeType === "pub") {
-      if (step === "start") {
-        setStep("result");
-        setSuccess(null); // Reset success state for result step
-        alert("Challenge started! Now attempt it and submit result.");
-      } else {
-        setStep("start"); // reset for retry
-        setSuccess(null); // Reset success state
-        if (success) {
-          alert("Challenge succeeded! Pub locked for your team.");
-        } else {
-          alert("Challenge failed. You can try again!");
+        const path = `challenges/${challengeId}/${Date.now()}-${
+          compressedFile.name
+        }`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("evidence")
+          .upload(path, compressedFile);
+
+        if (uploadError) {
+          alert(uploadError.message);
+          setLoading(false);
+          return;
         }
-        if (success) {
-          onSuccess?.(); // Close sheet on success
-        }
+
+        // Get public URL
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("evidence").getPublicUrl(path);
+        mediaUrl = publicUrl;
       }
-    } else {
-      alert("Global challenge completed! Bonus point awarded.");
-      onSuccess?.(); // Close sheet on completion
-    }
 
-    setLoading(false);
+      // Send URL to API route instead of file
+      const formData = new FormData();
+      formData.append("challengeId", challengeId);
+      formData.append("step", step);
+      formData.append("playerId", playerId);
+      if (pubId) formData.append("pubId", pubId);
+      if (mediaUrl) formData.append("mediaUrl", mediaUrl);
+      if (step === "result" && success !== null) {
+        formData.append("success", success.toString());
+      }
+
+      const res = await fetch("/api/challenge", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        alert(errorText);
+        setLoading(false);
+        return;
+      }
+
+      // Success - clear file and update state
+      setFile(null);
+      setFileInputKey((prev) => prev + 1); // Reset file input
+      if (challengeType === "pub") {
+        if (step === "start") {
+          setStep("result");
+          setSuccess(null); // Reset success state for result step
+          alert("Challenge started! Now attempt it and submit result.");
+        } else {
+          setStep("start"); // reset for retry
+          setSuccess(null); // Reset success state
+          if (success) {
+            alert("Challenge succeeded! Pub locked for your team.");
+          } else {
+            alert("Challenge failed. You can try again!");
+          }
+          if (success) {
+            onSuccess?.(); // Close sheet on success
+          }
+        }
+      } else {
+        alert("Global challenge completed! Bonus point awarded.");
+        onSuccess?.(); // Close sheet on completion
+      }
+
+      setLoading(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Upload failed");
+      setLoading(false);
+    }
   }
 
   // Check if player's team already completed this global challenge

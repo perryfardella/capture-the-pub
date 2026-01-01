@@ -6,9 +6,9 @@ export async function POST(req: Request) {
 
   const formData = await req.formData();
   const pubId = formData.get("pubId") as string;
-  const file = formData.get("file") as File;
+  const mediaUrl = formData.get("mediaUrl") as string;
 
-  if (!pubId || !file) {
+  if (!pubId || !mediaUrl) {
     return new NextResponse("Invalid submission", { status: 400 });
   }
 
@@ -46,20 +46,7 @@ export async function POST(req: Request) {
     return new NextResponse("Pub is locked", { status: 403 });
   }
 
-  // Upload media
-  const path = `captures/${pubId}/${Date.now()}-${file.name}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("evidence")
-    .upload(path, file);
-
-  if (uploadError) {
-    return new NextResponse(uploadError.message, { status: 500 });
-  }
-
-  const mediaUrl = supabase.storage.from("evidence").getPublicUrl(path)
-    .data.publicUrl;
-
+  // Media is already uploaded directly from client, use the provided URL
   const nextDrinkCount = pub.drink_count + 1;
 
   // Insert capture

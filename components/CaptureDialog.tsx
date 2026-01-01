@@ -11,6 +11,8 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { compressMedia } from "@/lib/utils/media-compression";
 
 export function CaptureDialog({
   pubId,
@@ -54,28 +56,62 @@ export function CaptureDialog({
     setError(null);
     setLoading(true);
 
-    const formData = new FormData();
-    formData.append("pubId", pubId);
-    formData.append("file", file);
-    formData.append("playerId", playerId);
+    try {
+      // Compress media file
+      const compressedFile = await compressMedia(file, {
+        maxImageSizeMB: 5,
+        maxVideoSizeMB: 20,
+        imageQuality: 0.8,
+        maxImageWidth: 1920,
+        maxImageHeight: 1920,
+      });
 
-    const res = await fetch("/api/capture", {
-      method: "POST",
-      body: formData,
-    });
+      // Upload directly to Supabase Storage
+      const supabase = createSupabaseBrowserClient();
+      const path = `captures/${pubId}/${Date.now()}-${compressedFile.name}`;
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      setError(errorText);
+      const { error: uploadError } = await supabase.storage
+        .from("evidence")
+        .upload(path, compressedFile);
+
+      if (uploadError) {
+        setError(uploadError.message);
+        setLoading(false);
+        return;
+      }
+
+      // Get public URL
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("evidence").getPublicUrl(path);
+
+      // Send URL to API route instead of file
+      const formData = new FormData();
+      formData.append("pubId", pubId);
+      formData.append("mediaUrl", publicUrl);
+      formData.append("playerId", playerId);
+
+      const res = await fetch("/api/capture", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        setError(errorText);
+        setLoading(false);
+        return;
+      }
+
+      // Reset form on success and close dialog
+      setFile(null);
+      setError(null);
       setLoading(false);
-      return;
+      setOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+      setLoading(false);
     }
-
-    // Reset form on success and close dialog
-    setFile(null);
-    setError(null);
-    setLoading(false);
-    setOpen(false);
   }
 
   const nextDrinkCount = currentDrinkCount + 1;

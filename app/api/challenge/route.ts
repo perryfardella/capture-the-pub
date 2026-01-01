@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   const challengeId = formData.get("challengeId") as string;
   const step = formData.get("step") as "start" | "result";
   const pubId = formData.get("pubId") as string | null;
-  const file = formData.get("file") as File | null;
+  const mediaUrl = formData.get("mediaUrl") as string | null;
   const successParam = formData.get("success") as string | null;
   const success = successParam === null ? null : successParam === "true";
 
@@ -35,18 +35,7 @@ export async function POST(req: Request) {
     .single();
   if (!player) return new NextResponse("Player not found", { status: 404 });
 
-  // Optional media upload
-  let mediaUrl: string | null = null;
-  if (file) {
-    const path = `challenges/${challengeId}/${Date.now()}-${file.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from("evidence")
-      .upload(path, file);
-    if (uploadError)
-      return new NextResponse(uploadError.message, { status: 500 });
-    mediaUrl = supabase.storage.from("evidence").getPublicUrl(path)
-      .data.publicUrl;
-  }
+  // Media is already uploaded directly from client, use the provided URL
 
   // Pub-specific challenges: enforce drink for start
   if (challenge.type === "pub" && step === "start") {
