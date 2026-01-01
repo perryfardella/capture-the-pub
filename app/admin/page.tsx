@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,14 +11,21 @@ export default function AdminPage() {
   const [authorized, setAuthorized] = useState(false);
   const [isActive, setIsActive] = useState(false);
 
-  async function loadState() {
-    const { data } = await supabase
+  const loadState = useCallback(async () => {
+    const { data, error } = await supabase
       .from("game_state")
       .select("is_active")
       .single();
 
+    if (error) {
+      console.error("Error loading game state:", error);
+      alert(`Failed to load game state: ${error.message}`);
+      return;
+    }
+
+    console.log("Loaded game state:", data);
     setIsActive(data?.is_active ?? false);
-  }
+  }, [supabase]);
 
   useEffect(() => {
     async function load() {
@@ -28,7 +35,7 @@ export default function AdminPage() {
     load().catch((error) => {
       console.error(error);
     });
-  }, [authorized]);
+  }, [authorized, loadState]);
 
   if (!authorized) {
     return (
@@ -64,12 +71,27 @@ export default function AdminPage() {
 
       <Button
         onClick={async () => {
-          await supabase
-            .from("game_state")
-            .update({ is_active: !isActive })
-            .eq("id", true);
+          console.log("Toggling game state...");
 
-          setIsActive(!isActive);
+          // Use RPC function to toggle game state
+          // This avoids the issue with boolean primary key filtering in PostgREST
+          const { data, error } = await supabase.rpc("toggle_game_state");
+
+          if (error) {
+            console.error("Error toggling game state:", error);
+            alert(`Failed to toggle game state: ${error.message}`);
+            return;
+          }
+
+          console.log("Game state toggled successfully:", data);
+
+          // Update local state from the returned data
+          if (data) {
+            setIsActive(data.is_active);
+          } else {
+            // Fallback: reload from DB
+            await loadState();
+          }
         }}
       >
         Toggle Game
