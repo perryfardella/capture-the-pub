@@ -1,0 +1,23 @@
+---
+description: Ensure the PRD is considered in all development prompts.
+alwaysApply: true
+---
+
+# Reference the PRD in All Development Work
+
+Always refer to and consider the Product Requirements Document (PRD) located at `docs/capture-the-pub-prd.md` when:
+- Making any code changes or architectural decisions
+- Implementing new features
+- Fixing bugs or addressing edge cases
+- Reviewing or refactoring existing code
+- Answering questions about game rules, user flows, or requirements
+
+The PRD defines the core game mechanics, user roles, technical constraints, and project goals. Ensure all implementations align with the PRD specifications.
+
+## Key Principles from PRD
+- Mobile-first design only (no desktop optimization)
+- Real-time updates for all players
+- Low-friction, honour-system based rules
+- Game never ends automatically - only admin can toggle game state
+- First valid submission wins for captures
+- All players see all activity feed items
