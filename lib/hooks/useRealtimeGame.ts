@@ -27,17 +27,30 @@ export function useRealtimeGame() {
         { data: capturesData, error: capturesError },
         { data: bonus, error: bonusError },
         { data: teamsData, error: teamsError },
+        { data: challengesData, error: challengesError },
       ] = await Promise.all([
         supabase.from("pubs").select("*"),
         supabase.from("captures").select("*"),
-        supabase.from("bonus_points").select("*"),
+        supabase.from("bonus_points").select("*, challenges(*)"),
         supabase.from("teams").select("*"),
+        supabase.from("challenges").select("*").eq("type", "pub"),
       ]);
 
       if (pubsError) {
         console.error("Error loading pubs:", pubsError);
       } else {
-        setPubs(pubsData ?? []);
+        // Join challenges with pubs
+        const pubsWithChallenges = (pubsData ?? []).map((pub) => {
+          const challenge = (challengesData ?? []).find(
+            (c) => c.pub_id === pub.id
+          );
+          return { ...pub, challenge: challenge || null };
+        });
+        setPubs(pubsWithChallenges);
+      }
+
+      if (challengesError) {
+        console.error("Error loading challenges:", challengesError);
       }
 
       if (capturesError) {
@@ -54,7 +67,7 @@ export function useRealtimeGame() {
       if (bonusError) {
         console.error("Error loading bonus points:", bonusError);
       } else {
-        // Manually join team data
+        // Manually join team data (challenge data is already joined via select)
         const bonusWithTeams = (bonus ?? []).map((bp) => {
           const team = (teamsData ?? []).find((t) => t.id === bp.team_id);
           return { ...bp, teams: team };
@@ -99,13 +112,25 @@ export function useRealtimeGame() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "pubs" },
-        (payload) => {
+        async (payload) => {
           if (payload.eventType === "INSERT") {
-            setPubs((prev) => [...prev, payload.new as any]);
+            // Fetch challenge for new pub
+            const { data: challenge } = await supabase
+              .from("challenges")
+              .select("*")
+              .eq("type", "pub")
+              .eq("pub_id", (payload.new as any).id)
+              .single();
+            setPubs((prev) => [
+              ...prev,
+              { ...payload.new, challenge: challenge || null } as any,
+            ]);
           } else if (payload.eventType === "UPDATE") {
             setPubs((prev) =>
               prev.map((p) =>
-                p.id === (payload.new as { id: string }).id ? payload.new : p
+                p.id === (payload.new as { id: string }).id
+                  ? { ...payload.new, challenge: p.challenge }
+                  : p
               )
             );
           } else if (payload.eventType === "DELETE") {
@@ -190,27 +215,51 @@ export function useRealtimeGame() {
         { event: "*", schema: "public", table: "bonus_points" },
         async (payload) => {
           if (payload.eventType === "INSERT") {
-            // Fetch team data for the new bonus point
-            const { data: teamData } = await supabase
-              .from("teams")
-              .select("*")
-              .eq("id", (payload.new as any).team_id)
-              .single();
+            // Fetch team and challenge data for the new bonus point
+            const [{ data: teamData }, { data: challengeData }] =
+              await Promise.all([
+                supabase
+                  .from("teams")
+                  .select("*")
+                  .eq("id", (payload.new as any).team_id)
+                  .single(),
+                supabase
+                  .from("challenges")
+                  .select("*")
+                  .eq("id", (payload.new as any).challenge_id)
+                  .single(),
+              ]);
             setBonusPoints((prev) => [
               ...prev,
-              { ...payload.new, teams: teamData || null } as any,
+              {
+                ...payload.new,
+                teams: teamData || null,
+                challenges: challengeData || null,
+              } as any,
             ]);
           } else if (payload.eventType === "UPDATE") {
-            // Fetch team data for the updated bonus point
-            const { data: teamData } = await supabase
-              .from("teams")
-              .select("*")
-              .eq("id", (payload.new as any).team_id)
-              .single();
+            // Fetch team and challenge data for the updated bonus point
+            const [{ data: teamData }, { data: challengeData }] =
+              await Promise.all([
+                supabase
+                  .from("teams")
+                  .select("*")
+                  .eq("id", (payload.new as any).team_id)
+                  .single(),
+                supabase
+                  .from("challenges")
+                  .select("*")
+                  .eq("id", (payload.new as any).challenge_id)
+                  .single(),
+              ]);
             setBonusPoints((prev) =>
               prev.map((b) =>
                 b.id === (payload.new as { id: string }).id
-                  ? { ...payload.new, teams: teamData || null }
+                  ? {
+                      ...payload.new,
+                      teams: teamData || null,
+                      challenges: challengeData || null,
+                    }
                   : b
               )
             );

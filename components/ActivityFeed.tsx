@@ -62,10 +62,24 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                             : item.success
                             ? "succeeded"
                             : "failed"}{" "}
-                          challenge at{" "}
-                          <span className="font-semibold">
-                            {item.pubName || item.pub_id}
-                          </span>
+                          {item.pubName ? (
+                            <>
+                              the challenge at{" "}
+                              <span className="font-semibold">
+                                {item.pubName}
+                              </span>
+                            </>
+                          ) : (
+                            "global challenge"
+                          )}
+                          {item.challengeDescription && (
+                            <>
+                              {" "}
+                              <span className="text-muted-foreground">
+                                ({item.challengeDescription})
+                              </span>
+                            </>
+                          )}
                         </>
                       )}
                       {item.type === "bonus" && (
@@ -79,7 +93,17 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                           <span className="font-semibold">
                             {item.teams?.name || "Unknown Team"}
                           </span>{" "}
-                          earned a bonus point! 🎉
+                          completed{" "}
+                          {item.challengeDescription ? (
+                            <>
+                              <span className="font-semibold">
+                                {item.challengeDescription}
+                              </span>{" "}
+                            </>
+                          ) : (
+                            "global challenge "
+                          )}
+                          and earned a bonus point! 🎉
                         </>
                       )}
                     </p>

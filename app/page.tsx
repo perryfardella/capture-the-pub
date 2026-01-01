@@ -23,8 +23,13 @@ export default function Home() {
   const [globalChallenges, setGlobalChallenges] = useState<any[]>([]);
   // TODO
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [challengeAttempts, setChallengeAttempts] = useState<any[]>([]);
+  // TODO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [teams, setTeams] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<"pubs" | "scoreboard" | "activity" | "challenges">("pubs");
+  const [activeTab, setActiveTab] = useState<
+    "pubs" | "scoreboard" | "activity" | "challenges"
+  >("pubs");
 
   useEffect(() => {
     async function loadGlobalChallenges() {
@@ -38,6 +43,28 @@ export default function Home() {
     }
 
     loadGlobalChallenges();
+
+    // Subscribe to global challenges updates
+    const supabase = createSupabaseBrowserClient();
+    const challengesChannel = supabase
+      .channel("realtime-global-challenges")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "challenges",
+          filter: "type=eq.global",
+        },
+        () => {
+          loadGlobalChallenges();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(challengesChannel);
+    };
   }, []);
 
   useEffect(() => {
@@ -50,14 +77,98 @@ export default function Home() {
     loadTeams();
   }, []);
 
+  // Load challenge attempts for activity feed
+  // Filter out global challenge result attempts (they're shown via bonus_points instead)
+  useEffect(() => {
+    async function loadChallengeAttempts() {
+      const supabase = createSupabaseBrowserClient();
+      const { data: attempts } = await supabase
+        .from("challenge_attempts")
+        .select("*, teams(*), challenges(*)");
+
+      if (attempts) {
+        const attemptsWithPubNames = attempts
+          .filter((attempt) => {
+            // Filter out global challenge result attempts (shown via bonus_points)
+            const challenge = attempt.challenges;
+            return !(challenge?.type === "global" && attempt.step === "result");
+          })
+          .map((attempt) => {
+            const challenge = attempt.challenges;
+            const pub = challenge?.pub_id
+              ? pubs.find((p) => p.id === challenge.pub_id)
+              : null;
+            return {
+              ...attempt,
+              type: "challenge",
+              pubName: pub?.name || null,
+              challengeDescription: challenge?.description || null,
+            };
+          });
+        setChallengeAttempts(attemptsWithPubNames);
+      }
+    }
+
+    loadChallengeAttempts();
+
+    // Subscribe to challenge attempts updates
+    const supabase = createSupabaseBrowserClient();
+    const attemptsChannel = supabase
+      .channel("realtime-challenge-attempts")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "challenge_attempts" },
+        async (payload) => {
+          if (payload.eventType === "INSERT") {
+            // Fetch team and challenge data for new attempt
+            const { data: attempt } = await supabase
+              .from("challenge_attempts")
+              .select("*, teams(*), challenges(*)")
+              .eq("id", (payload.new as any).id)
+              .single();
+
+            if (attempt) {
+              const challenge = attempt.challenges;
+              // Filter out global challenge result attempts (shown via bonus_points)
+              if (challenge?.type === "global" && attempt.step === "result") {
+                return;
+              }
+              const pub = challenge?.pub_id
+                ? pubs.find((p) => p.id === challenge.pub_id)
+                : null;
+              setChallengeAttempts((prev) => [
+                {
+                  ...attempt,
+                  type: "challenge",
+                  pubName: pub?.name || null,
+                  challengeDescription: challenge?.description || null,
+                },
+                ...prev,
+              ]);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(attemptsChannel);
+    };
+  }, [pubs]);
+
   // Merge feed items with pub names
+  // Include challenge data with bonus points
   const feed = [
     ...captures.map((c) => {
       const pub = pubs.find((p) => p.id === c.pub_id);
       return { ...c, type: "capture", pubName: pub?.name || c.pub_id };
     }),
-    ...bonusPoints.map((b) => ({ ...b, type: "bonus" })),
-    // challenge attempts handled in Phase 8
+    ...challengeAttempts,
+    ...bonusPoints.map((b) => ({
+      ...b,
+      type: "bonus",
+      challengeDescription: b.challenges?.description || null,
+    })),
   ].sort(
     (a, b) =>
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -78,7 +189,7 @@ export default function Home() {
     { id: "pubs" as const, label: "Pubs", icon: "📍" },
     { id: "scoreboard" as const, label: "Scores", icon: "🏆" },
     { id: "activity" as const, label: "Feed", icon: "📸" },
-    { id: "challenges" as const, label: "Challenges", icon: "🎯" },
+    { id: "challenges" as const, label: "Global Challenges", icon: "🎯" },
   ];
 
   const playerTeam = player?.teams;
@@ -114,16 +225,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Sticky Tab Title */}
-      <div className="sticky top-0 z-10 bg-background border-b px-4 py-3">
-        <h2 className="text-lg font-bold">
-          {activeTab === "pubs" && "Pubs"}
-          {activeTab === "scoreboard" && "Scoreboard"}
-          {activeTab === "activity" && "Activity Feed"}
-          {activeTab === "challenges" && "Global Challenges"}
-        </h2>
-      </div>
-
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === "pubs" && <PubList pubs={pubs} teams={teams} />}
         {activeTab === "scoreboard" && (
@@ -131,21 +232,92 @@ export default function Home() {
         )}
         {activeTab === "activity" && <ActivityFeed feed={feed} />}
         {activeTab === "challenges" && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {globalChallenges.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No active challenges
-              </p>
+              <div className="text-center py-12">
+                <p className="text-sm text-muted-foreground">
+                  No active global challenges
+                </p>
+              </div>
             ) : (
-              <div className="space-y-2">
-                {globalChallenges.map((c) => (
-                  <ChallengeDialog
-                    key={c.id}
-                    challengeId={c.id}
-                    challengeType="global"
-                    disabled={!isActive || c.is_consumed}
-                  />
-                ))}
+              <div className="space-y-4">
+                {globalChallenges.map((c) => {
+                  const isTeamCompleted =
+                    player?.team_id &&
+                    c.completed_by_team_id === player.team_id;
+                  const isAvailable =
+                    isActive && !c.is_consumed && !isTeamCompleted;
+
+                  return (
+                    <div
+                      key={c.id}
+                      className={`border rounded-xl p-5 space-y-4 transition-all ${
+                        isTeamCompleted
+                          ? "bg-muted/30 border-amber-200"
+                          : isAvailable
+                          ? "bg-gradient-to-br from-background to-muted/20 border-primary/20 shadow-sm"
+                          : "bg-muted/10 border-muted"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-lg ${
+                            isTeamCompleted
+                              ? "bg-amber-100 text-amber-600"
+                              : isAvailable
+                              ? "bg-primary/10 text-primary"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {isTeamCompleted ? "✓" : "🎯"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-1">
+                            <h3 className="font-semibold text-base leading-tight">
+                              {c.description}
+                            </h3>
+                            {isTeamCompleted && (
+                              <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
+                                Completed
+                              </span>
+                            )}
+                            {!isActive && (
+                              <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-muted text-muted-foreground">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          {isTeamCompleted ? (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Your team has already completed this challenge
+                            </p>
+                          ) : !isActive ? (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Game is currently inactive
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Complete for a bonus point
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {isAvailable && (
+                        <div className="pt-2 border-t">
+                          <ChallengeDialog
+                            challengeId={c.id}
+                            challengeType="global"
+                            description={c.description}
+                            disabled={!isActive || c.is_consumed}
+                            playerTeamId={player?.team_id}
+                            completedByTeamId={c.completed_by_team_id}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -163,7 +335,9 @@ export default function Home() {
               onClick={() => setActiveTab(tab.id)}
             >
               <span className="text-lg">{tab.icon}</span>
-              <span>{tab.label}</span>
+              <span className="text-center leading-tight whitespace-normal break-words">
+                {tab.label}
+              </span>
             </Button>
           ))}
         </div>
