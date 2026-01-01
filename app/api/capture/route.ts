@@ -53,6 +53,7 @@ export async function POST(req: Request) {
   const { error: captureError } = await supabase.from("captures").insert({
     pub_id: pubId,
     team_id: player.team_id,
+    player_id: playerId,
     drink_count: nextDrinkCount,
     media_url: mediaUrl,
   });

@@ -49,6 +49,10 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                             }}
                           />
                           <span className="font-semibold">
+                            {item.players?.nickname || "Unknown Player"}
+                          </span>{" "}
+                          from{" "}
+                          <span className="font-semibold">
                             {item.teams?.name || "Unknown Team"}
                           </span>{" "}
                           captured{" "}
@@ -67,6 +71,10 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                               backgroundColor: item.teams?.color || "#666",
                             }}
                           />
+                          <span className="font-semibold">
+                            {item.players?.nickname || "Unknown Player"}
+                          </span>{" "}
+                          from{" "}
                           <span className="font-semibold">
                             {item.teams?.name || "Unknown Team"}
                           </span>{" "}
@@ -103,6 +111,10 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                               backgroundColor: item.teams?.color || "#666",
                             }}
                           />
+                          <span className="font-semibold">
+                            {item.players?.nickname || "Unknown Player"}
+                          </span>{" "}
+                          from{" "}
                           <span className="font-semibold">
                             {item.teams?.name || "Unknown Team"}
                           </span>{" "}

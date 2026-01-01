@@ -149,7 +149,7 @@ export default function Home() {
       const supabase = createSupabaseBrowserClient();
       const { data: attempts } = await supabase
         .from("challenge_attempts")
-        .select("*, teams(*), challenges(*)");
+        .select("*, teams(*), challenges(*), players(*)");
 
       if (attempts) {
         const attemptsWithPubNames = attempts
@@ -185,10 +185,10 @@ export default function Home() {
         { event: "*", schema: "public", table: "challenge_attempts" },
         async (payload) => {
           if (payload.eventType === "INSERT") {
-            // Fetch team and challenge data for new attempt
+            // Fetch team, challenge, and player data for new attempt
             const { data: attempt } = await supabase
               .from("challenge_attempts")
-              .select("*, teams(*), challenges(*)")
+              .select("*, teams(*), challenges(*), players(*)")
               .eq("id", (payload.new as unknown as { id: string }).id)
               .single();
 
@@ -262,23 +262,28 @@ export default function Home() {
   return (
     <div className="flex flex-col h-screen pb-20">
       {/* Header */}
-      <header className="border-b bg-background px-4 py-3">
+      <header className="border-b bg-background px-4 py-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-medium">{player?.nickname}</span>
+          <div className="flex flex-col gap-0.5">
+            <h1 className="text-base font-bold leading-tight">
+              Capture the Pub
+            </h1>
+            <p className="text-xs text-muted-foreground leading-tight">
+              Reuben's Bucks
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <span className="font-medium text-sm">{player?.nickname}</span>
             {playerTeam && (
-              <>
-                <span className="text-muted-foreground">•</span>
-                <span
-                  className="px-2 py-1 rounded text-sm font-medium"
-                  style={{
-                    backgroundColor: playerTeam.color + "22",
-                    color: playerTeam.color,
-                  }}
-                >
-                  {playerTeam.name}
-                </span>
-              </>
+              <span
+                className="px-2 py-0.5 rounded text-xs font-medium"
+                style={{
+                  backgroundColor: playerTeam.color + "22",
+                  color: playerTeam.color,
+                }}
+              >
+                {playerTeam.name}
+              </span>
             )}
           </div>
         </div>

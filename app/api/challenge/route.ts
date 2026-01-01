@@ -51,6 +51,7 @@ export async function POST(req: Request) {
     await supabase.from("challenge_attempts").insert({
       challenge_id: challengeId,
       team_id: player.team_id,
+      player_id: playerId,
       step,
       success: step === "result" ? success : null,
       media_url: mediaUrl ?? "",
@@ -92,6 +93,7 @@ export async function POST(req: Request) {
     // Insert bonus point for this team
     const { error: insertError } = await supabase.from("bonus_points").insert({
       team_id: player.team_id,
+      player_id: playerId,
       challenge_id: challengeId,
       media_url: mediaUrl ?? "",
     });

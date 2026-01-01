@@ -51,7 +51,17 @@ export function useGameState() {
         if (status === "SUBSCRIBED") {
           console.log("Successfully subscribed to game_state changes");
         } else if (status === "CHANNEL_ERROR") {
-          console.error("Error subscribing to game_state changes");
+          console.warn(
+            "Temporary error subscribing to game_state changes. Supabase will automatically retry."
+          );
+        } else if (status === "CLOSED") {
+          console.log(
+            "Game state subscription closed. This is normal during connection retries."
+          );
+        } else if (status === "TIMED_OUT") {
+          console.warn(
+            "Game state subscription timed out. Supabase will automatically retry."
+          );
         }
       });
 

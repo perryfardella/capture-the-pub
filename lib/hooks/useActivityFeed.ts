@@ -13,9 +13,9 @@ export function useActivityFeed() {
     async function load() {
       const [{ data: captures }, { data: attempts }, { data: bonus }] =
         await Promise.all([
-          supabase.from("captures").select("*, teams(*)"),
-          supabase.from("challenge_attempts").select("*, teams(*)"),
-          supabase.from("bonus_points").select("*, teams(*)"),
+          supabase.from("captures").select("*, teams(*), players(*)"),
+          supabase.from("challenge_attempts").select("*, teams(*), players(*)"),
+          supabase.from("bonus_points").select("*, teams(*), players(*)"),
         ]);
 
       const all = [
@@ -47,13 +47,14 @@ export function useActivityFeed() {
     load();
 
     // Realtime subscriptions
+    // Note: Realtime events don't include joined data, so we'll reload on changes
     const channels = [
       supabase
         .channel("realtime-captures")
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "captures" },
-          (p) => setFeed((prev) => [{ ...p.new, type: "capture" }, ...prev])
+          () => load()
         )
         .subscribe(),
       supabase
@@ -61,7 +62,7 @@ export function useActivityFeed() {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "challenge_attempts" },
-          (p) => setFeed((prev) => [{ ...p.new, type: "challenge" }, ...prev])
+          () => load()
         )
         .subscribe(),
       supabase
@@ -69,7 +70,7 @@ export function useActivityFeed() {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "bonus_points" },
-          (p) => setFeed((prev) => [{ ...p.new, type: "bonus" }, ...prev])
+          () => load()
         )
         .subscribe(),
     ];

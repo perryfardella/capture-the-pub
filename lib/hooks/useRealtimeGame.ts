@@ -30,8 +30,8 @@ export function useRealtimeGame() {
         { data: challengesData, error: challengesError },
       ] = await Promise.all([
         supabase.from("pubs").select("*"),
-        supabase.from("captures").select("*"),
-        supabase.from("bonus_points").select("*, challenges(*)"),
+        supabase.from("captures").select("*, players(*)"),
+        supabase.from("bonus_points").select("*, challenges(*), players(*)"),
         supabase.from("teams").select("*"),
         supabase.from("challenges").select("*").eq("type", "pub"),
       ]);
@@ -56,7 +56,7 @@ export function useRealtimeGame() {
       if (capturesError) {
         console.error("Error loading captures:", capturesError);
       } else {
-        // Manually join team data
+        // Manually join team data (player data is already joined via select)
         const capturesWithTeams = (capturesData ?? []).map((capture) => {
           const team = (teamsData ?? []).find((t) => t.id === capture.team_id);
           return { ...capture, teams: team };
@@ -67,7 +67,7 @@ export function useRealtimeGame() {
       if (bonusError) {
         console.error("Error loading bonus points:", bonusError);
       } else {
-        // Manually join team data (challenge data is already joined via select)
+        // Manually join team data (challenge and player data are already joined via select)
         const bonusWithTeams = (bonus ?? []).map((bp) => {
           const team = (teamsData ?? []).find((t) => t.id === bp.team_id);
           return { ...bp, teams: team };
@@ -162,27 +162,55 @@ export function useRealtimeGame() {
         { event: "*", schema: "public", table: "captures" },
         async (payload) => {
           if (payload.eventType === "INSERT") {
-            // Fetch team data for the new capture
-            const { data: teamData } = await supabase
-              .from("teams")
-              .select("*")
-              .eq("id", (payload.new as any).team_id)
-              .single();
+            // Fetch team and player data for the new capture
+            const [{ data: teamData }, { data: playerData }] =
+              await Promise.all([
+                supabase
+                  .from("teams")
+                  .select("*")
+                  .eq("id", (payload.new as any).team_id)
+                  .single(),
+                (payload.new as any).player_id
+                  ? supabase
+                      .from("players")
+                      .select("*")
+                      .eq("id", (payload.new as any).player_id)
+                      .single()
+                  : Promise.resolve({ data: null }),
+              ]);
             setCaptures((prev) => [
               ...prev,
-              { ...payload.new, teams: teamData || null } as any,
+              {
+                ...payload.new,
+                teams: teamData || null,
+                players: playerData || null,
+              } as any,
             ]);
           } else if (payload.eventType === "UPDATE") {
-            // Fetch team data for the updated capture
-            const { data: teamData } = await supabase
-              .from("teams")
-              .select("*")
-              .eq("id", (payload.new as any).team_id)
-              .single();
+            // Fetch team and player data for the updated capture
+            const [{ data: teamData }, { data: playerData }] =
+              await Promise.all([
+                supabase
+                  .from("teams")
+                  .select("*")
+                  .eq("id", (payload.new as any).team_id)
+                  .single(),
+                (payload.new as any).player_id
+                  ? supabase
+                      .from("players")
+                      .select("*")
+                      .eq("id", (payload.new as any).player_id)
+                      .single()
+                  : Promise.resolve({ data: null }),
+              ]);
             setCaptures((prev) =>
               prev.map((c) =>
                 c.id === (payload.new as { id: string }).id
-                  ? { ...payload.new, teams: teamData || null }
+                  ? {
+                      ...payload.new,
+                      teams: teamData || null,
+                      players: playerData || null,
+                    }
                   : c
               )
             );
@@ -215,43 +243,64 @@ export function useRealtimeGame() {
         { event: "*", schema: "public", table: "bonus_points" },
         async (payload) => {
           if (payload.eventType === "INSERT") {
-            // Fetch team and challenge data for the new bonus point
-            const [{ data: teamData }, { data: challengeData }] =
-              await Promise.all([
-                supabase
-                  .from("teams")
-                  .select("*")
-                  .eq("id", (payload.new as any).team_id)
-                  .single(),
-                supabase
-                  .from("challenges")
-                  .select("*")
-                  .eq("id", (payload.new as any).challenge_id)
-                  .single(),
-              ]);
+            // Fetch team, challenge, and player data for the new bonus point
+            const [
+              { data: teamData },
+              { data: challengeData },
+              { data: playerData },
+            ] = await Promise.all([
+              supabase
+                .from("teams")
+                .select("*")
+                .eq("id", (payload.new as any).team_id)
+                .single(),
+              supabase
+                .from("challenges")
+                .select("*")
+                .eq("id", (payload.new as any).challenge_id)
+                .single(),
+              (payload.new as any).player_id
+                ? supabase
+                    .from("players")
+                    .select("*")
+                    .eq("id", (payload.new as any).player_id)
+                    .single()
+                : Promise.resolve({ data: null }),
+            ]);
             setBonusPoints((prev) => [
               ...prev,
               {
                 ...payload.new,
                 teams: teamData || null,
                 challenges: challengeData || null,
+                players: playerData || null,
               } as any,
             ]);
           } else if (payload.eventType === "UPDATE") {
-            // Fetch team and challenge data for the updated bonus point
-            const [{ data: teamData }, { data: challengeData }] =
-              await Promise.all([
-                supabase
-                  .from("teams")
-                  .select("*")
-                  .eq("id", (payload.new as any).team_id)
-                  .single(),
-                supabase
-                  .from("challenges")
-                  .select("*")
-                  .eq("id", (payload.new as any).challenge_id)
-                  .single(),
-              ]);
+            // Fetch team, challenge, and player data for the updated bonus point
+            const [
+              { data: teamData },
+              { data: challengeData },
+              { data: playerData },
+            ] = await Promise.all([
+              supabase
+                .from("teams")
+                .select("*")
+                .eq("id", (payload.new as any).team_id)
+                .single(),
+              supabase
+                .from("challenges")
+                .select("*")
+                .eq("id", (payload.new as any).challenge_id)
+                .single(),
+              (payload.new as any).player_id
+                ? supabase
+                    .from("players")
+                    .select("*")
+                    .eq("id", (payload.new as any).player_id)
+                    .single()
+                : Promise.resolve({ data: null }),
+            ]);
             setBonusPoints((prev) =>
               prev.map((b) =>
                 b.id === (payload.new as { id: string }).id
@@ -259,6 +308,7 @@ export function useRealtimeGame() {
                       ...payload.new,
                       teams: teamData || null,
                       challenges: challengeData || null,
+                      players: playerData || null,
                     }
                   : b
               )
