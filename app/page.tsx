@@ -1,12 +1,25 @@
+"use client";
+
+import { usePlayer } from "@/lib/hooks/usePlayer";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
 export default function Home() {
+  const { player, loading } = usePlayer();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !player) {
+      router.replace("/join");
+    }
+    // TODO: Is this an issue?
+  }, [loading, player]);
+
+  if (loading) return null;
+
   return (
-    <main className="min-h-dvh bg-background">
-      <div className="mx-auto max-w-md p-4">
-        <h1 className="text-2xl font-bold">Capture the Pub 🍺</h1>
-        <p className="mt-2 text-muted-foreground">
-          Mobile-first bucks party game
-        </p>
-      </div>
-    </main>
+    <div className="p-4">
+      <h1 className="text-xl font-bold">Welcome, {player.nickname}</h1>
+    </div>
   );
 }
