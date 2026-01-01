@@ -2,13 +2,13 @@
 
 import { calculateScores } from "@/lib/game/scoreboard";
 import { Badge } from "@/components/ui/badge";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
 export function Scoreboard({
   teams,
   pubs,
   bonusPoints,
+  playersByTeam,
 }: {
   // TODO
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,40 +19,20 @@ export function Scoreboard({
   // TODO
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   bonusPoints: any[];
+  // TODO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  playersByTeam: Record<string, any[]>;
 }) {
   const scores = calculateScores({ teams, pubs, bonusPoints });
   const maxScore = scores.length > 0 ? Math.max(...scores.map((s) => s.score), 1) : 1;
   
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [playersByTeam, setPlayersByTeam] = useState<Record<string, any[]>>({});
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
-  const [loadingPlayers, setLoadingPlayers] = useState(true);
 
+  // Debug: Log playersByTeam when it changes
   useEffect(() => {
-    async function loadPlayers() {
-      setLoadingPlayers(true);
-      const supabase = createSupabaseBrowserClient();
-      const { data } = await supabase
-        .from("players")
-        .select("id, nickname, team_id")
-        .order("nickname");
-      
-      if (data) {
-        const grouped = data.reduce((acc, player) => {
-          if (!acc[player.team_id]) {
-            acc[player.team_id] = [];
-          }
-          acc[player.team_id].push(player);
-          return acc;
-        }, {} as Record<string, typeof data>);
-        setPlayersByTeam(grouped);
-      }
-      setLoadingPlayers(false);
-    }
-
-    loadPlayers();
-  }, []);
+    console.log("Scoreboard playersByTeam:", playersByTeam);
+    console.log("Scoreboard teams:", teams.map(t => ({ id: t.id, name: t.name })));
+  }, [playersByTeam, teams]);
 
   const toggleTeam = (teamId: string) => {
     setExpandedTeams((prev) => {
@@ -182,23 +162,21 @@ export function Scoreboard({
                   </div>
 
                   {/* Players list */}
-                  {loadingPlayers ? (
-                    <div className="border-t pt-3 mt-3" style={{ borderColor: team.color + "30" }}>
-                      <div className="flex items-center justify-between w-full">
-                        <div className="h-5 w-24 bg-muted animate-pulse rounded" />
-                        <div className="h-4 w-4 bg-muted animate-pulse rounded" />
-                      </div>
-                    </div>
-                  ) : (
-                    playersByTeam[team.id] && playersByTeam[team.id].length > 0 && (
+                  {(() => {
+                    const teamId = String(team.id);
+                    const teamPlayers = playersByTeam[teamId];
+                    const playerCount = teamPlayers?.length ?? 0;
+                    const hasPlayers = playerCount > 0;
+                    
+                    return hasPlayers ? (
                       <div className="border-t pt-3 mt-3" style={{ borderColor: team.color + "30" }}>
                         <button
                           onClick={() => toggleTeam(team.id)}
                           className="flex items-center justify-between w-full text-left"
                         >
                           <span className="text-sm font-medium text-muted-foreground">
-                            👥 {playersByTeam[team.id].length}{" "}
-                            {playersByTeam[team.id].length === 1 ? "player" : "players"}
+                            👥 {playerCount}{" "}
+                            {playerCount === 1 ? "player" : "players"}
                           </span>
                           <span className="text-muted-foreground">
                             {expandedTeams.has(team.id) ? "▲" : "▼"}
@@ -207,7 +185,7 @@ export function Scoreboard({
                         
                         {expandedTeams.has(team.id) && (
                           <div className="mt-2 space-y-1.5">
-                            {playersByTeam[team.id].map((player) => (
+                            {teamPlayers.map((player) => (
                               <div
                                 key={player.id}
                                 className="flex items-center gap-2 text-sm py-1 px-2 rounded"
@@ -220,8 +198,8 @@ export function Scoreboard({
                           </div>
                         )}
                       </div>
-                    )
-                  )}
+                    ) : null;
+                  })()}
                 </div>
               </div>
             );

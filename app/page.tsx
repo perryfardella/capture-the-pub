@@ -30,6 +30,9 @@ export default function Home() {
   // TODO
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [teams, setTeams] = useState<any[]>([]);
+  // TODO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [playersByTeam, setPlayersByTeam] = useState<Record<string, any[]>>({});
   const [activeTab, setActiveTab] = useState<
     "pubs" | "scoreboard" | "activity" | "challenges"
   >("pubs");
@@ -91,7 +94,69 @@ export default function Home() {
       setTeams(data ?? []);
     }
 
+    async function loadPlayers() {
+      const supabase = createSupabaseBrowserClient();
+      const { data } = await supabase
+        .from("players")
+        .select("id, nickname, team_id")
+        .order("nickname");
+
+      if (data) {
+        const grouped = data.reduce((acc, player) => {
+          const teamId = String(player.team_id);
+          if (!acc[teamId]) {
+            acc[teamId] = [];
+          }
+          acc[teamId].push(player);
+          return acc;
+        }, {} as Record<string, typeof data>);
+        console.log(
+          "Loaded players:",
+          data.length,
+          "Grouped by team:",
+          grouped
+        );
+        setPlayersByTeam(grouped);
+      } else {
+        console.log("No players data returned");
+      }
+    }
+
     loadTeams();
+    loadPlayers();
+
+    // Subscribe to players updates
+    const supabase = createSupabaseBrowserClient();
+    const playersChannel = supabase
+      .channel("realtime-players")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "players" },
+        async () => {
+          // Reload all players when any change occurs
+          const { data } = await supabase
+            .from("players")
+            .select("id, nickname, team_id")
+            .order("nickname");
+
+          if (data) {
+            const grouped = data.reduce((acc, player) => {
+              const teamId = String(player.team_id);
+              if (!acc[teamId]) {
+                acc[teamId] = [];
+              }
+              acc[teamId].push(player);
+              return acc;
+            }, {} as Record<string, typeof data>);
+            setPlayersByTeam(grouped);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(playersChannel);
+    };
   }, []);
 
   // Load challenge attempts for activity feed
@@ -245,7 +310,12 @@ export default function Home() {
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === "pubs" && <PubList pubs={pubs} teams={teams} />}
         {activeTab === "scoreboard" && (
-          <Scoreboard teams={teams} pubs={pubs} bonusPoints={bonusPoints} />
+          <Scoreboard
+            teams={teams}
+            pubs={pubs}
+            bonusPoints={bonusPoints}
+            playersByTeam={playersByTeam}
+          />
         )}
         {activeTab === "activity" && <ActivityFeed feed={feed} />}
         {activeTab === "challenges" && (
