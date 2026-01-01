@@ -27,9 +27,11 @@ export function Scoreboard({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [playersByTeam, setPlayersByTeam] = useState<Record<string, any[]>>({});
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
+  const [loadingPlayers, setLoadingPlayers] = useState(true);
 
   useEffect(() => {
     async function loadPlayers() {
+      setLoadingPlayers(true);
       const supabase = createSupabaseBrowserClient();
       const { data } = await supabase
         .from("players")
@@ -46,6 +48,7 @@ export function Scoreboard({
         }, {} as Record<string, typeof data>);
         setPlayersByTeam(grouped);
       }
+      setLoadingPlayers(false);
     }
 
     loadPlayers();
@@ -179,36 +182,45 @@ export function Scoreboard({
                   </div>
 
                   {/* Players list */}
-                  {playersByTeam[team.id] && playersByTeam[team.id].length > 0 && (
+                  {loadingPlayers ? (
                     <div className="border-t pt-3 mt-3" style={{ borderColor: team.color + "30" }}>
-                      <button
-                        onClick={() => toggleTeam(team.id)}
-                        className="flex items-center justify-between w-full text-left"
-                      >
-                        <span className="text-sm font-medium text-muted-foreground">
-                          👥 {playersByTeam[team.id].length}{" "}
-                          {playersByTeam[team.id].length === 1 ? "player" : "players"}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {expandedTeams.has(team.id) ? "▲" : "▼"}
-                        </span>
-                      </button>
-                      
-                      {expandedTeams.has(team.id) && (
-                        <div className="mt-2 space-y-1.5">
-                          {playersByTeam[team.id].map((player) => (
-                            <div
-                              key={player.id}
-                              className="flex items-center gap-2 text-sm py-1 px-2 rounded"
-                              style={{ backgroundColor: team.color + "10" }}
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: team.color }} />
-                              <span className="text-foreground">{player.nickname}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <div className="flex items-center justify-between w-full">
+                        <div className="h-5 w-24 bg-muted animate-pulse rounded" />
+                        <div className="h-4 w-4 bg-muted animate-pulse rounded" />
+                      </div>
                     </div>
+                  ) : (
+                    playersByTeam[team.id] && playersByTeam[team.id].length > 0 && (
+                      <div className="border-t pt-3 mt-3" style={{ borderColor: team.color + "30" }}>
+                        <button
+                          onClick={() => toggleTeam(team.id)}
+                          className="flex items-center justify-between w-full text-left"
+                        >
+                          <span className="text-sm font-medium text-muted-foreground">
+                            👥 {playersByTeam[team.id].length}{" "}
+                            {playersByTeam[team.id].length === 1 ? "player" : "players"}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {expandedTeams.has(team.id) ? "▲" : "▼"}
+                          </span>
+                        </button>
+                        
+                        {expandedTeams.has(team.id) && (
+                          <div className="mt-2 space-y-1.5">
+                            {playersByTeam[team.id].map((player) => (
+                              <div
+                                key={player.id}
+                                className="flex items-center gap-2 text-sm py-1 px-2 rounded"
+                                style={{ backgroundColor: team.color + "10" }}
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: team.color }} />
+                                <span className="text-foreground">{player.nickname}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
                   )}
                 </div>
               </div>

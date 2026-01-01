@@ -11,8 +11,7 @@ import {
   DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { compressMedia } from "@/lib/utils/media-compression";
+import { useMediaUpload } from "@/lib/hooks/useMediaUpload";
 
 export function CaptureDialog({
   pubId,
@@ -26,92 +25,67 @@ export function CaptureDialog({
   disabled?: boolean;
 }) {
   const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    uploadMedia,
+    uploading: loading,
+    uploadProgress,
+    error,
+    reset: resetUpload,
+    setError: setUploadError,
+  } = useMediaUpload();
 
   function handleOpenChange(newOpen: boolean) {
     setOpen(newOpen);
     if (!newOpen) {
       // Reset form when dialog closes
       setFile(null);
-      setError(null);
+      resetUpload();
     }
   }
 
   async function submit() {
     // Frontend validation
     if (!file) {
-      setError("Please select a photo or video to submit as evidence.");
       return;
     }
 
     const playerId = localStorage.getItem("player_id");
     if (!playerId) {
-      setError("No player session. Please join the game first.");
       return;
     }
 
-    setError(null);
-    setLoading(true);
+    // Upload media using shared hook
+    const result = await uploadMedia(file, `captures/${pubId}`);
 
-    try {
-      // Compress media file
-      const compressedFile = await compressMedia(file, {
-        maxImageSizeMB: 5,
-        maxVideoSizeMB: 20,
-        imageQuality: 0.8,
-        maxImageWidth: 1920,
-        maxImageHeight: 1920,
-      });
-
-      // Upload directly to Supabase Storage
-      const supabase = createSupabaseBrowserClient();
-      const path = `captures/${pubId}/${Date.now()}-${compressedFile.name}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("evidence")
-        .upload(path, compressedFile);
-
-      if (uploadError) {
-        setError(uploadError.message);
-        setLoading(false);
-        return;
-      }
-
-      // Get public URL
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("evidence").getPublicUrl(path);
-
-      // Send URL to API route instead of file
-      const formData = new FormData();
-      formData.append("pubId", pubId);
-      formData.append("mediaUrl", publicUrl);
-      formData.append("playerId", playerId);
-
-      const res = await fetch("/api/capture", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        setError(errorText);
-        setLoading(false);
-        return;
-      }
-
-      // Reset form on success and close dialog
-      setFile(null);
-      setError(null);
-      setLoading(false);
-      setOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-      setLoading(false);
+    if (result.error || !result.mediaUrl) {
+      // Error is already set by the hook
+      return;
     }
+
+    // Send URL to API route
+    const formData = new FormData();
+    formData.append("pubId", pubId);
+    formData.append("mediaUrl", result.mediaUrl);
+    formData.append("playerId", playerId);
+
+    const res = await fetch("/api/capture", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      setUploadError(errorText);
+      return;
+    }
+
+    // Reset form on success and close dialog
+    setFile(null);
+    resetUpload();
+    setOpen(false);
   }
 
   const nextDrinkCount = currentDrinkCount + 1;
@@ -153,19 +127,38 @@ export function CaptureDialog({
               className="hidden"
               onChange={(e) => {
                 setFile(e.target.files?.[0] ?? null);
-                setError(null);
+                resetUpload();
               }}
             />
             {file && (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  Selected: {file.name}
+                  Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)}
+                  MB)
                 </p>
+                {uploadProgress !== null && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Uploading...</span>
+                      <span>{Math.round(uploadProgress)}%</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setFile(null)}
+                  onClick={() => {
+                    setFile(null);
+                    resetUpload();
+                  }}
+                  disabled={loading}
                 >
                   Remove
                 </Button>

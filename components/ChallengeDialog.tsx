@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { compressMedia } from "@/lib/utils/media-compression";
+import { useMediaUpload } from "@/lib/hooks/useMediaUpload";
 
 export function ChallengeDialog({
   challengeId,
@@ -32,11 +32,19 @@ export function ChallengeDialog({
   const [step, setStep] = useState<"start" | "result">(
     challengeType === "pub" ? "start" : "result"
   );
-  const [loading, setLoading] = useState(false);
   const [challengeDescription, setChallengeDescription] = useState<
     string | null
   >(description || null);
   const [success, setSuccess] = useState<boolean | null>(null);
+
+  const {
+    uploadMedia,
+    uploading: loading,
+    uploadProgress,
+    error,
+    reset: resetUpload,
+    setError: setUploadError,
+  } = useMediaUpload();
 
   // Fetch challenge description if not provided
   useEffect(() => {
@@ -58,26 +66,23 @@ export function ChallengeDialog({
   async function submit() {
     // Validate photo requirement for global challenges
     if (challengeType === "global" && !file) {
-      alert(
+      setUploadError(
         "Please upload a photo or video to complete this global challenge."
       );
       return;
     }
     // Validate photo requirement for pub challenge start step
     if (challengeType === "pub" && step === "start" && !file) return;
-    setLoading(true);
 
     const playerId = localStorage.getItem("player_id");
     if (!playerId) {
-      alert("No player session. Please join the game first.");
-      setLoading(false);
+      setUploadError("No player session. Please join the game first.");
       return;
     }
 
     // Validate success selection for pub challenge result step
     if (challengeType === "pub" && step === "result" && success === null) {
-      alert("Please specify whether the challenge passed or failed.");
-      setLoading(false);
+      setUploadError("Please specify whether the challenge passed or failed.");
       return;
     }
 
@@ -86,36 +91,14 @@ export function ChallengeDialog({
 
       // Upload file directly to Supabase Storage if provided
       if (file) {
-        const supabase = createSupabaseBrowserClient();
+        const result = await uploadMedia(file, `challenges/${challengeId}`);
 
-        // Compress media file
-        const compressedFile = await compressMedia(file, {
-          maxImageSizeMB: 5,
-          maxVideoSizeMB: 20,
-          imageQuality: 0.8,
-          maxImageWidth: 1920,
-          maxImageHeight: 1920,
-        });
-
-        const path = `challenges/${challengeId}/${Date.now()}-${
-          compressedFile.name
-        }`;
-
-        const { error: uploadError } = await supabase.storage
-          .from("evidence")
-          .upload(path, compressedFile);
-
-        if (uploadError) {
-          alert(uploadError.message);
-          setLoading(false);
+        if (result.error) {
+          // Error is already set by the hook
           return;
         }
 
-        // Get public URL
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("evidence").getPublicUrl(path);
-        mediaUrl = publicUrl;
+        mediaUrl = result.mediaUrl;
       }
 
       // Send URL to API route instead of file
@@ -136,14 +119,14 @@ export function ChallengeDialog({
 
       if (!res.ok) {
         const errorText = await res.text();
-        alert(errorText);
-        setLoading(false);
+        setUploadError(errorText);
         return;
       }
 
       // Success - clear file and update state
       setFile(null);
       setFileInputKey((prev) => prev + 1); // Reset file input
+      resetUpload();
       if (challengeType === "pub") {
         if (step === "start") {
           setStep("result");
@@ -165,11 +148,8 @@ export function ChallengeDialog({
         alert("Global challenge completed! Bonus point awarded.");
         onSuccess?.(); // Close sheet on completion
       }
-
-      setLoading(false);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Upload failed");
-      setLoading(false);
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
     }
   }
 
@@ -198,26 +178,52 @@ export function ChallengeDialog({
                 key={fileInputKey}
                 type="file"
                 accept="image/*,video/*"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                disabled={!!isTeamCompleted}
+                onChange={(e) => {
+                  setFile(e.target.files?.[0] ?? null);
+                  resetUpload();
+                }}
+                disabled={!!isTeamCompleted || loading}
                 className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
               />
             </div>
             {file && (
-              <div className="p-2 bg-muted rounded-md flex items-center justify-between gap-2">
-                <span className="text-xs text-muted-foreground truncate flex-1">
-                  {file.name}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFile(null);
-                    setFileInputKey((prev) => prev + 1);
-                  }}
-                  className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Remove
-                </button>
+              <div className="space-y-2">
+                <div className="p-2 bg-muted rounded-md flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground truncate flex-1">
+                    {file.name} ({(file.size / 1024 / 1024).toFixed(2)}MB)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFile(null);
+                      setFileInputKey((prev) => prev + 1);
+                      resetUpload();
+                    }}
+                    disabled={loading}
+                    className="shrink-0 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+                {uploadProgress !== null && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Uploading...</span>
+                      <span>{Math.round(uploadProgress)}%</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {error && (
+              <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
+                {error}
               </div>
             )}
           </div>
@@ -282,10 +288,53 @@ export function ChallengeDialog({
               key={fileInputKey}
               type="file"
               accept="image/*,video/*"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              disabled={!!isTeamCompleted}
+              onChange={(e) => {
+                setFile(e.target.files?.[0] ?? null);
+                resetUpload();
+              }}
+              disabled={!!isTeamCompleted || loading}
               className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
             />
+            {file && (
+              <div className="space-y-2">
+                <div className="p-2 bg-muted rounded-md flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground truncate flex-1">
+                    {file.name} ({(file.size / 1024 / 1024).toFixed(2)}MB)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFile(null);
+                      setFileInputKey((prev) => prev + 1);
+                      resetUpload();
+                    }}
+                    disabled={loading}
+                    className="shrink-0 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+                {uploadProgress !== null && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Uploading...</span>
+                      <span>{Math.round(uploadProgress)}%</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            {error && (
+              <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
+                {error}
+              </div>
+            )}
           </div>
 
           <Button

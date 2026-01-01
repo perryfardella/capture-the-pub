@@ -141,7 +141,7 @@ export default function Home() {
             const { data: attempt } = await supabase
               .from("challenge_attempts")
               .select("*, teams(*), challenges(*)")
-              .eq("id", (payload.new as any).id)
+              .eq("id", (payload.new as unknown as { id: string }).id)
               .single();
 
             if (attempt) {

@@ -1,18 +1,18 @@
 /**
- * Compress an image file to reduce its size
+ * Compress an image file to reduce its size while maintaining good quality
  * @param file - The image file to compress
- * @param maxWidth - Maximum width (default: 1920)
- * @param maxHeight - Maximum height (default: 1920)
- * @param quality - JPEG quality 0-1 (default: 0.8)
- * @param maxSizeMB - Maximum file size in MB (default: 5)
+ * @param maxWidth - Maximum width (default: 2560 for better quality)
+ * @param maxHeight - Maximum height (default: 2560 for better quality)
+ * @param quality - JPEG quality 0-1 (default: 0.85 for better quality)
+ * @param maxSizeMB - Maximum file size in MB (default: 10)
  * @returns Compressed File or original if compression fails
  */
 export async function compressImage(
   file: File,
-  maxWidth: number = 1920,
-  maxHeight: number = 1920,
-  quality: number = 0.8,
-  maxSizeMB: number = 5
+  maxWidth: number = 2560,
+  maxHeight: number = 2560,
+  quality: number = 0.85,
+  maxSizeMB: number = 10
 ): Promise<File> {
   // If file is already small enough, return as-is
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
@@ -81,15 +81,73 @@ export async function compressImage(
 }
 
 /**
+ * Get video duration in seconds
+ * @param file - The video file
+ * @returns Duration in seconds
+ */
+export function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      window.URL.revokeObjectURL(video.src);
+      resolve(video.duration);
+    };
+    video.onerror = () => {
+      window.URL.revokeObjectURL(video.src);
+      reject(new Error("Failed to load video metadata"));
+    };
+    video.src = URL.createObjectURL(file);
+  });
+}
+
+/**
+ * Validate video file (duration and size)
+ * @param file - The video file to validate
+ * @param maxDurationSeconds - Maximum duration in seconds (default: 60)
+ * @param maxSizeMB - Maximum file size in MB (default: 100)
+ * @returns Validation result with error message if invalid
+ */
+export async function validateVideo(
+  file: File,
+  maxDurationSeconds: number = 60,
+  maxSizeMB: number = 100
+): Promise<{ valid: boolean; error?: string }> {
+  const maxSizeBytes = maxSizeMB * 1024 * 1024;
+
+  if (file.size > maxSizeBytes) {
+    return {
+      valid: false,
+      error: `Video file is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is ${maxSizeMB}MB.`,
+    };
+  }
+
+  try {
+    const duration = await getVideoDuration(file);
+    if (duration > maxDurationSeconds) {
+      return {
+        valid: false,
+        error: `Video is too long (${Math.ceil(duration)}s). Maximum duration is ${maxDurationSeconds} seconds.`,
+      };
+    }
+  } catch (err) {
+    // If we can't read duration, allow it but warn
+    console.warn("Could not read video duration", err);
+  }
+
+  return { valid: true };
+}
+
+/**
  * Compress a video file by reducing quality/resolution
  * Note: Browser video compression is limited. For better results, consider server-side processing.
  * @param file - The video file to compress
- * @param maxSizeMB - Maximum file size in MB (default: 20)
+ * @param maxSizeMB - Maximum file size in MB (default: 100 for 1-minute videos)
  * @returns Compressed File or original if compression fails/not needed
  */
 export async function compressVideo(
   file: File,
-  maxSizeMB: number = 20
+  maxSizeMB: number = 100
 ): Promise<File> {
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
