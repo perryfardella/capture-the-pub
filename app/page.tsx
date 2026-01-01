@@ -12,10 +12,10 @@ export default function Home() {
     if (!loading && !player) {
       router.replace("/join");
     }
-    // TODO: Is this an issue?
-  }, [loading, player]);
+  }, [loading, player, router]);
 
   if (loading) return null;
+  if (!player) return null; // Prevent rendering before redirect completes
 
   return (
     <div className="p-4">
