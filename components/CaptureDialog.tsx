@@ -83,15 +83,9 @@ export function CaptureDialog({
         <div className="space-y-4">
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">
-              To capture this pub, you need to:
+              To capture this pub, you need to drink{" "}
+              <strong>{nextDrinkCount}</strong> drink(s).
             </p>
-            <ul className="text-sm space-y-1 list-disc list-inside text-muted-foreground">
-              <li>Submit a photo or video as evidence</li>
-              <li>
-                Drink count will increase from {currentDrinkCount} to{" "}
-                {nextDrinkCount}
-              </li>
-            </ul>
           </div>
 
           <div className="space-y-2">
