@@ -72,20 +72,33 @@ export async function POST(req: Request) {
   }
 
   // Handle global challenge → bonus point (with media_url)
-  if (
-    challenge.type === "global" &&
-    step === "result" &&
-    !challenge.is_consumed
-  ) {
-    await supabase.from("bonus_points").insert({
+  // Allow multiple teams to complete the same global challenge
+  if (challenge.type === "global" && step === "result") {
+    // Check if this team has already completed this challenge
+    const { data: existingBonusPoint } = await supabase
+      .from("bonus_points")
+      .select("id")
+      .eq("challenge_id", challengeId)
+      .eq("team_id", player.team_id)
+      .single();
+
+    if (existingBonusPoint) {
+      return new NextResponse(
+        "Your team has already completed this challenge",
+        { status: 400 }
+      );
+    }
+
+    // Insert bonus point for this team
+    const { error: insertError } = await supabase.from("bonus_points").insert({
       team_id: player.team_id,
       challenge_id: challengeId,
       media_url: mediaUrl ?? "",
     });
-    await supabase
-      .from("challenges")
-      .update({ is_consumed: true, completed_by_team_id: player.team_id })
-      .eq("id", challengeId);
+
+    if (insertError) {
+      return new NextResponse(insertError.message, { status: 500 });
+    }
   }
 
   return NextResponse.json({ success: true });

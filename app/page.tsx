@@ -23,9 +23,6 @@ export default function Home() {
   const [globalChallenges, setGlobalChallenges] = useState<any[]>([]);
   // TODO
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [completedChallenges, setCompletedChallenges] = useState<any[]>([]);
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [challengeAttempts, setChallengeAttempts] = useState<any[]>([]);
   // TODO
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,28 +37,15 @@ export default function Home() {
   useEffect(() => {
     async function loadGlobalChallenges() {
       const supabase = createSupabaseBrowserClient();
+      // Load all global challenges (not filtered by is_consumed)
       const { data } = await supabase
         .from("challenges")
         .select("*")
-        .eq("type", "global")
-        .eq("is_consumed", false); // only show uncompleted
+        .eq("type", "global");
       setGlobalChallenges(data ?? []);
     }
 
-    async function loadCompletedChallenges() {
-      if (!player?.team_id) return;
-      const supabase = createSupabaseBrowserClient();
-      const { data } = await supabase
-        .from("challenges")
-        .select("*")
-        .eq("type", "global")
-        .eq("is_consumed", true)
-        .eq("completed_by_team_id", player.team_id);
-      setCompletedChallenges(data ?? []);
-    }
-
     loadGlobalChallenges();
-    loadCompletedChallenges();
 
     // Subscribe to global challenges updates
     const supabase = createSupabaseBrowserClient();
@@ -77,7 +61,6 @@ export default function Home() {
         },
         () => {
           loadGlobalChallenges();
-          loadCompletedChallenges();
         }
       )
       .subscribe();
@@ -331,11 +314,15 @@ export default function Home() {
               ) : (
                 <div className="space-y-4">
                   {globalChallenges.map((c) => {
+                    // Check if this team has completed this challenge via bonus_points
                     const isTeamCompleted =
                       player?.team_id &&
-                      c.completed_by_team_id === player.team_id;
-                    const isAvailable =
-                      isActive && !c.is_consumed && !isTeamCompleted;
+                      bonusPoints.some(
+                        (bp) =>
+                          bp.challenge_id === c.id &&
+                          bp.team_id === player.team_id
+                      );
+                    const isAvailable = isActive && !isTeamCompleted;
 
                     return (
                       <div
@@ -376,17 +363,9 @@ export default function Home() {
                                 </span>
                               )}
                             </div>
-                            {isTeamCompleted ? (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Your team has already completed this challenge
-                              </p>
-                            ) : !isActive ? (
+                            {!isActive && (
                               <p className="text-xs text-muted-foreground mt-1">
                                 Game is currently inactive
-                              </p>
-                            ) : (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Complete for a bonus point
                               </p>
                             )}
                           </div>
@@ -397,9 +376,11 @@ export default function Home() {
                             challengeId={c.id}
                             challengeType="global"
                             description={c.description}
-                            disabled={!isActive || c.is_consumed}
+                            disabled={!isActive}
                             playerTeamId={player?.team_id}
-                            completedByTeamId={c.completed_by_team_id}
+                            completedByTeamId={
+                              isTeamCompleted ? player?.team_id : undefined
+                            }
                           />
                         )}
                       </div>
@@ -408,39 +389,6 @@ export default function Home() {
                 </div>
               )}
             </div>
-
-            {/* Completed Challenges Section */}
-            {completedChallenges.length > 0 && (
-              <div className="space-y-3 pt-4 border-t">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                  Completed by Your Team
-                </h2>
-                <div className="space-y-3">
-                  {completedChallenges.map((c) => (
-                    <div
-                      key={c.id}
-                      className="border rounded-xl p-4 bg-muted/20 border-amber-200/50"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-base bg-amber-100 text-amber-600">
-                          ✓
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-medium text-sm leading-tight text-muted-foreground">
-                              {c.description}
-                            </h3>
-                            <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
-                              Completed
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
