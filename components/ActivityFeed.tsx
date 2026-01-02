@@ -176,7 +176,7 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                               earned{" "}
                             </span>
                             <span className="font-semibold text-amber-600">
-                              +1 bonus
+                              +1 bonus point
                             </span>
                             {item.challengeDescription && (
                               <span className="text-muted-foreground">
