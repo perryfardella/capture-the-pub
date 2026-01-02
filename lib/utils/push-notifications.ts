@@ -206,8 +206,10 @@ async function sendPushNotification(
     console.log("Payload:", payload);
 
     // web-push expects the payload as a string (JSON stringified)
+    // Use shorter TTL to ensure notifications are delivered promptly
+    // Reduced from 24 hours to 1 hour to prevent long queuing
     const result = await webpush.sendNotification(webPushSubscription, JSON.stringify(payload), {
-      TTL: 86400, // 24 hours
+      TTL: 3600, // 1 hour
     });
     console.log("Push notification sent successfully");
     return true;
