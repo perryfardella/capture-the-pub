@@ -1,5 +1,5 @@
 // Custom service worker code for push notifications
-// This will be merged with next-pwa's generated service worker
+// Note: This file is kept for reference. The actual service worker is sw.js
 
 // Push notification handler
 self.addEventListener("push", function (event) {

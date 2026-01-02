@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 /**
  * Component to ensure service worker is registered
- * This is a fallback in case next-pwa's auto-registration doesn't work
+ * Registers the service worker following Next.js PWA guide
  */
 export function ServiceWorkerRegistration() {
   useEffect(() => {
@@ -38,7 +38,7 @@ export function ServiceWorkerRegistration() {
         }
       };
 
-      // Register after a short delay to let next-pwa try first
+      // Register after page load
       setTimeout(registerSW, 1000);
     }
   }, []);
