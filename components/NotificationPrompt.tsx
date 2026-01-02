@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 
 export function NotificationPrompt() {
-  const { isSupported, permission, isSubscribed, subscribe } =
+  const { isSupported, permission, isSubscribed, subscribe, requestPermission } =
     usePushNotifications();
   const { player } = usePlayer();
   const [dismissed, setDismissed] = useState(false);
@@ -70,8 +70,28 @@ export function NotificationPrompt() {
       return;
     }
 
+    // IMPORTANT: Request permission FIRST, directly from user gesture
+    // This must happen synchronously from the click handler, before any async operations
     try {
-      console.log("Starting subscription process...");
+      console.log("Requesting notification permission from user gesture...");
+      
+      // Use the hook's requestPermission function to keep state in sync
+      // This calls Notification.requestPermission() internally
+      const granted = await requestPermission();
+      console.log("Permission request result:", granted);
+      
+      if (!granted) {
+        const currentPermission = Notification.permission;
+        if (currentPermission === "denied") {
+          alert("Notification permission was denied. Please enable it in your browser settings.");
+        } else {
+          alert("Notification permission was not granted. Please try again.");
+        }
+        return;
+      }
+
+      // Now proceed with subscription after permission is granted
+      console.log("Permission granted, starting subscription process...");
       const success = await subscribe(player.id);
       console.log("Subscription result:", success);
       if (success) {

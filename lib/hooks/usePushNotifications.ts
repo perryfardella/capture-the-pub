@@ -86,11 +86,20 @@ export function usePushNotifications() {
       return false;
     }
 
-    if (state.permission === "granted") {
+    // Check actual permission status (not just state) to handle cases where
+    // permission was granted but state hasn't updated yet
+    const currentPermission = Notification.permission;
+    console.log("Current Notification.permission:", currentPermission);
+    
+    if (currentPermission === "granted") {
       console.log("Permission already granted");
+      // Update state to reflect current permission
+      setState((prev) => ({ ...prev, permission: currentPermission }));
       return true;
     }
 
+    // Permission must be requested from a user gesture (click handler)
+    // This function should only be called from a user gesture handler
     console.log("Requesting notification permission from browser...");
     const permission = await Notification.requestPermission();
     console.log("Browser returned permission:", permission);
@@ -105,7 +114,7 @@ export function usePushNotifications() {
     }
 
     return permission === "granted";
-  }, [state.isSupported, state.permission]);
+  }, [state.isSupported]);
 
   const subscribe = useCallback(
     async (playerId: string): Promise<boolean> => {
@@ -121,12 +130,27 @@ export function usePushNotifications() {
         return false;
       }
 
-      if (state.permission !== "granted") {
-        console.log("Permission not granted, requesting permission...");
-        const granted = await requestPermission();
-        console.log("Permission request result:", granted);
-        if (!granted) {
-          console.warn("Permission was denied or not granted");
+      // Check actual permission status (not just state) in case it was updated elsewhere
+      const currentPermission = Notification.permission;
+      console.log("Current Notification.permission:", currentPermission);
+      
+      if (currentPermission !== "granted") {
+        // Update state to reflect current permission
+        setState((prev) => ({ ...prev, permission: currentPermission }));
+        
+        // Only request permission if it's still "default"
+        // If it was already requested in the component, it should be "granted" by now
+        if (currentPermission === "default") {
+          console.log("Permission not granted, requesting permission...");
+          const granted = await requestPermission();
+          console.log("Permission request result:", granted);
+          if (!granted) {
+            console.warn("Permission was denied or not granted");
+            return false;
+          }
+        } else {
+          // Permission was denied
+          console.warn("Permission was denied");
           return false;
         }
         console.log("Permission granted, continuing with subscription...");
