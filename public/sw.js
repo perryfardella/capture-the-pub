@@ -41,10 +41,18 @@ self.addEventListener("push", function (event) {
           const title = data.title || "Reuben's Bucks";
           const body = data.body || "New game update";
 
+          // Badge icon for status bar - Android requires monochrome (white/transparent silhouette)
+          // If you see a white square, create a badge icon:
+          // - Size: 72x72px (for xxhdpi) or 96x96px (for xxxhdpi)
+          // - Format: PNG with transparent background
+          // - Design: Simple monochrome silhouette (Android uses only alpha channel)
+          // - Then add the badge icon path in the notification payload
           const options = {
             body: body,
-            icon: "/manifest-icon-192.maskable.png",
-            badge: "/manifest-icon-192.maskable.png",
+            icon: "/manifest-icon-192.maskable.png", // Large icon for notification drawer
+            // Only include badge if provided in payload - otherwise system uses app icon
+            ...(data.badge && { badge: data.badge }),
+            image: data.image, // Optional large image for expanded notification
             vibrate: [200, 100, 200],
             tag: data.tag || "game-update",
             data: data.data || {},
@@ -65,6 +73,7 @@ self.addEventListener("push", function (event) {
             await self.registration.showNotification("Reuben's Bucks", {
               body: "New game update",
               icon: "/manifest-icon-192.maskable.png",
+              // Omit badge - system will use app icon
               requireInteraction: true,
               silent: false,
             });
@@ -78,6 +87,7 @@ self.addEventListener("push", function (event) {
         self.registration.showNotification("Reuben's Bucks", {
           body: "New game update",
           icon: "/manifest-icon-192.maskable.png",
+          // Omit badge - system will use app icon
           requireInteraction: true,
           silent: false,
         }).then(() => {
