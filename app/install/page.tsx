@@ -136,51 +136,45 @@ export default function InstallPage() {
     );
   }
 
-  // Handle opening the PWA (close this browser tab so user opens from home screen)
-  const handleOpenPWA = () => {
-    // Try to close this browser tab - this encourages user to open from home screen
-    // window.close() only works for windows opened via JavaScript in most browsers,
-    // but we try anyway and the user will need to manually close if it doesn't work
-    window.close();
-    
-    // If window.close() didn't work (which is common), the page will still be visible
-    // The UI already tells them to open from home screen, so that's fine
-  };
-
   // Installed state - celebration!
   if (installState === "installed") {
+    const isCountdownComplete = countdown === 0;
+    
     return (
       <div className="min-h-screen bg-gradient-to-b from-green-50 to-emerald-50 flex flex-col items-center justify-center p-6">
         <div className="text-center space-y-6 max-w-sm animate-in zoom-in-50 duration-500">
           {/* Celebration */}
-          <div className="text-8xl">🎉</div>
+          <div className="text-8xl">{isCountdownComplete ? "🎉" : "⏳"}</div>
 
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-green-800">You&apos;re in!</h1>
-            <p className="text-green-600 text-lg">App installed successfully</p>
-          </div>
-
-          <div className="bg-green-100 border-2 border-green-300 rounded-xl p-4 space-y-2">
-            <p className="text-green-800 font-medium">
-              🏠 Find the app on your home screen
-            </p>
-            <p className="text-green-700 text-sm">
-              Close this browser and tap the app icon to get started!
+            <h1 className="text-3xl font-bold text-green-800">
+              {isCountdownComplete ? "You're all set!" : "Installing..."}
+            </h1>
+            <p className="text-green-600 text-lg">
+              {isCountdownComplete 
+                ? "App installed successfully" 
+                : `Ready in ${countdown} seconds...`}
             </p>
           </div>
 
-          <Button
-            onClick={handleOpenPWA}
-            size="lg"
-            className="w-full text-lg py-6 bg-green-600 hover:bg-green-700"
-            disabled={countdown > 0}
-          >
-            {countdown > 0 ? `Ready in ${countdown}...` : "🍻 Close & Open App"}
-          </Button>
-          
-          <p className="text-green-600 text-sm">
-            If this doesn&apos;t close automatically, just close this tab manually
-          </p>
+          {isCountdownComplete ? (
+            <div className="bg-green-100 border-2 border-green-300 rounded-xl p-5 space-y-3">
+              <p className="text-green-800 font-semibold text-lg">
+                🏠 Find the app on your home screen
+              </p>
+              <p className="text-green-700">
+                Close this browser and tap the <strong>Capture the Pub</strong> icon to get started!
+              </p>
+              <div className="pt-2 text-4xl">🍻</div>
+            </div>
+          ) : (
+            <div className="bg-amber-100 border-2 border-amber-300 rounded-xl p-4">
+              <p className="text-amber-800 font-semibold">⚠️ Don&apos;t close yet!</p>
+              <p className="text-amber-700 text-sm mt-1">
+                Finishing up the installation...
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
