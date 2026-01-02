@@ -19,12 +19,17 @@ export function ServiceWorkerRegistration() {
           let registration = await navigator.serviceWorker.getRegistration();
           
           if (!registration) {
-            // Try to register
+            // Register service worker (following Next.js PWA guide)
             console.log("Registering service worker...");
-            registration = await navigator.serviceWorker.register("/sw.js", {
-              scope: "/",
-            });
-            console.log("Service worker registered:", registration.scope);
+            try {
+              registration = await navigator.serviceWorker.register("/sw.js", {
+                scope: "/",
+                updateViaCache: "none",
+              });
+              console.log("Service worker registered:", registration.scope);
+            } catch (err) {
+              console.error("Failed to register service worker:", err);
+            }
           } else {
             console.log("Service worker already registered:", registration.scope);
           }

@@ -36,37 +36,23 @@ export function usePushNotifications() {
 
     // Check if already subscribed
     if (isSupported && "serviceWorker" in navigator) {
-      // Wait for page to fully load before checking service worker
+      // Check service worker and subscription (following Next.js PWA guide)
       const checkServiceWorker = async () => {
         try {
-          // Wait a bit for next-pwa's auto-registration
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+          // Register service worker
+          const registration = await navigator.serviceWorker.register("/sw.js", {
+            scope: "/",
+            updateViaCache: "none",
+          });
           
-          let registration = await navigator.serviceWorker.getRegistration();
-          
-          // If still no registration, try to register manually
-          if (!registration) {
-            try {
-              registration = await navigator.serviceWorker.register("/sw.js", {
-                scope: "/",
-              });
-              console.log("Manually registered service worker");
-            } catch (err) {
-              console.warn("Could not register service worker:", err);
-              return;
-            }
-          }
-          
-          if (registration) {
-            await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.getSubscription();
-            console.log("Current subscription:", subscription ? "Found" : "None");
-            setState((prev) => ({
-              ...prev,
-              subscription,
-              isSubscribed: !!subscription,
-            }));
-          }
+          await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.getSubscription();
+          console.log("Current subscription:", subscription ? "Found" : "None");
+          setState((prev) => ({
+            ...prev,
+            subscription,
+            isSubscribed: !!subscription,
+          }));
         } catch (err) {
           console.warn("Error checking subscription:", err);
         }
@@ -117,46 +103,32 @@ export function usePushNotifications() {
 
         console.log("Current service worker registration:", registration);
 
-        if (!registration) {
-          console.log("No service worker found, attempting to register...");
-          
-          // Wait a bit for next-pwa to inject the registration script
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          
-          // Check again after waiting
-          registration = await navigator.serviceWorker.getRegistration();
-          
           if (!registration) {
-            // Try to register the service worker manually
-            // next-pwa generates sw.js in the public folder
-            const swPaths = ["/sw.js", "/sw.js?timestamp=" + Date.now()];
+            console.log("No service worker found, attempting to register...");
             
-            let lastError: Error | null = null;
+            // Wait a bit for next-pwa to inject the registration script
+            await new Promise((resolve) => setTimeout(resolve, 1000));
             
-            for (const swPath of swPaths) {
-              try {
-                console.log(`Attempting to register service worker at ${swPath}`);
-                registration = await navigator.serviceWorker.register(swPath, {
-                  scope: "/",
-                });
-                console.log("Service worker registered successfully at:", swPath);
-                break;
-              } catch (err) {
-                console.warn(`Failed to register at ${swPath}:`, err);
-                lastError = err instanceof Error ? err : new Error(String(err));
-              }
-            }
+            // Check again after waiting
+            registration = await navigator.serviceWorker.getRegistration();
             
             if (!registration) {
-              // Check if we're in production
-              const isProduction = process.env.NODE_ENV === "production";
-              const errorMsg = isProduction
-                ? `Service worker file not found. Check that next-pwa generated /sw.js in the public folder. Error: ${lastError?.message || "Unknown"}`
-                : "Service worker not available. Make sure you're running a production build (pnpm build && pnpm start). Push notifications don't work in development mode.";
-              throw new Error(errorMsg);
+              // Register service worker (following Next.js PWA guide)
+              console.log("Registering service worker...");
+              try {
+                registration = await navigator.serviceWorker.register("/sw.js", {
+                  scope: "/",
+                  updateViaCache: "none",
+                });
+                console.log("Service worker registered successfully");
+              } catch (err) {
+                const errorMsg = err instanceof Error ? err.message : "Unknown error";
+                throw new Error(
+                  `Failed to register service worker: ${errorMsg}. Make sure /sw.js exists in the public folder.`
+                );
+              }
             }
           }
-        }
 
         // Wait for registration to be ready
         console.log("Waiting for service worker to be ready...");
