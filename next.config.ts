@@ -37,4 +37,5 @@ export default withPWA({
       },
     },
   ],
+  // @ts-expect-error - next-pwa types are for Next.js 13, but we're on 16
 })(nextConfig);
