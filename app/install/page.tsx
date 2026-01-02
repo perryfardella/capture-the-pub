@@ -12,10 +12,15 @@ interface BeforeInstallPromptEvent extends Event {
 type InstallState = "ready" | "installing" | "installed";
 
 export default function InstallPage() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [installState, setInstallState] = useState<InstallState>("ready");
-  const [platform, setPlatform] = useState<"ios" | "android" | "desktop" | "unknown">("unknown");
-  const [browser, setBrowser] = useState<"safari" | "chrome" | "other">("other");
+  const [platform, setPlatform] = useState<
+    "ios" | "android" | "desktop" | "unknown"
+  >("unknown");
+  const [browser, setBrowser] = useState<"safari" | "chrome" | "other">(
+    "other"
+  );
   const [countdown, setCountdown] = useState(10);
 
   useEffect(() => {
@@ -29,7 +34,8 @@ export default function InstallPage() {
     const userAgent = navigator.userAgent.toLowerCase();
     const isIOS = /iphone|ipad|ipod/.test(userAgent);
     const isAndroid = /android/.test(userAgent);
-    const isSafari = /safari/.test(userAgent) && !/chrome|crios|fxios/.test(userAgent);
+    const isSafari =
+      /safari/.test(userAgent) && !/chrome|crios|fxios/.test(userAgent);
     const isChrome = /chrome|crios/.test(userAgent);
 
     if (isIOS) {
@@ -59,7 +65,10 @@ export default function InstallPage() {
     window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt
+      );
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
@@ -109,7 +118,9 @@ export default function InstallPage() {
           {/* Animated beer */}
           <div className="relative">
             <div className="text-8xl animate-bounce">🍺</div>
-            <div className="absolute -top-2 -right-2 text-2xl animate-ping">✨</div>
+            <div className="absolute -top-2 -right-2 text-2xl animate-ping">
+              ✨
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -119,7 +130,9 @@ export default function InstallPage() {
 
           {/* Warning message */}
           <div className="bg-amber-100 border-2 border-amber-300 rounded-xl p-4">
-            <p className="text-amber-800 font-semibold text-lg">⚠️ Don&apos;t close your browser!</p>
+            <p className="text-amber-800 font-semibold text-lg">
+              ⚠️ Don&apos;t close your browser!
+            </p>
             <p className="text-amber-700 text-sm mt-1">
               Keep this page open until the install finishes
             </p>
@@ -127,9 +140,18 @@ export default function InstallPage() {
 
           {/* Loading indicator */}
           <div className="flex justify-center gap-2">
-            <div className="w-3 h-3 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-            <div className="w-3 h-3 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-            <div className="w-3 h-3 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+            <div
+              className="w-3 h-3 bg-amber-500 rounded-full animate-bounce"
+              style={{ animationDelay: "0ms" }}
+            />
+            <div
+              className="w-3 h-3 bg-amber-500 rounded-full animate-bounce"
+              style={{ animationDelay: "150ms" }}
+            />
+            <div
+              className="w-3 h-3 bg-amber-500 rounded-full animate-bounce"
+              style={{ animationDelay: "300ms" }}
+            />
           </div>
         </div>
       </div>
@@ -139,7 +161,7 @@ export default function InstallPage() {
   // Installed state - celebration!
   if (installState === "installed") {
     const isCountdownComplete = countdown === 0;
-    
+
     return (
       <div className="min-h-screen bg-gradient-to-b from-green-50 to-emerald-50 flex flex-col items-center justify-center p-6">
         <div className="text-center space-y-6 max-w-sm animate-in zoom-in-50 duration-500">
@@ -151,8 +173,8 @@ export default function InstallPage() {
               {isCountdownComplete ? "You're all set!" : "Installing..."}
             </h1>
             <p className="text-green-600 text-lg">
-              {isCountdownComplete 
-                ? "App installed successfully" 
+              {isCountdownComplete
+                ? "App installed successfully"
                 : `Ready in ${countdown} seconds...`}
             </p>
           </div>
@@ -163,13 +185,16 @@ export default function InstallPage() {
                 🏠 Find the app on your home screen
               </p>
               <p className="text-green-700">
-                Close this browser and tap the <strong>Capture the Pub</strong> icon to get started!
+                Close this browser and tap the{" "}
+                <strong>Reuben&apos;s Bucks</strong> icon to get started!
               </p>
               <div className="pt-2 text-4xl">🍻</div>
             </div>
           ) : (
             <div className="bg-amber-100 border-2 border-amber-300 rounded-xl p-4">
-              <p className="text-amber-800 font-semibold">⚠️ Don&apos;t close yet!</p>
+              <p className="text-amber-800 font-semibold">
+                ⚠️ Don&apos;t close yet!
+              </p>
               <p className="text-amber-700 text-sm mt-1">
                 Finishing up the installation...
               </p>
@@ -186,8 +211,12 @@ export default function InstallPage() {
       {/* Hero Section */}
       <div className="px-6 pt-12 pb-8 text-center">
         <div className="text-7xl mb-4">🍻</div>
-        <h1 className="text-3xl font-black text-amber-900 mb-2">Capture the Pub</h1>
-        <p className="text-lg text-amber-700 font-medium">Reuben&apos;s Bucks Party</p>
+        <h1 className="text-3xl font-black text-amber-900 mb-2">
+          Capture the Pub
+        </h1>
+        <p className="text-lg text-amber-700 font-medium">
+          Reuben&apos;s Bucks Party
+        </p>
       </div>
 
       {/* Install Card */}
@@ -201,7 +230,9 @@ export default function InstallPage() {
                   <Download className="h-8 w-8 text-amber-600" />
                 </div>
                 <h2 className="text-xl font-bold text-gray-900">Get the App</h2>
-                <p className="text-gray-600">One tap and you&apos;re in, legend</p>
+                <p className="text-gray-600">
+                  One tap and you&apos;re in, legend
+                </p>
               </div>
 
               <Button
@@ -224,8 +255,8 @@ export default function InstallPage() {
                 </div>
                 <h2 className="text-xl font-bold text-gray-900">Get the App</h2>
                 <p className="text-gray-600">
-                  {browser === "chrome" 
-                    ? "Loading install button..." 
+                  {browser === "chrome"
+                    ? "Loading install button..."
                     : "Open this page in Chrome for the best experience"}
                 </p>
               </div>
@@ -233,7 +264,8 @@ export default function InstallPage() {
               {browser !== "chrome" && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                   <p className="text-sm text-amber-800">
-                    <strong>Tip:</strong> Copy this link and open it in Chrome browser for easy install
+                    <strong>Tip:</strong> Copy this link and open it in Chrome
+                    browser for easy install
                   </p>
                 </div>
               )}
@@ -247,8 +279,12 @@ export default function InstallPage() {
                 <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto">
                   <Share className="h-8 w-8 text-amber-600" />
                 </div>
-                <h2 className="text-xl font-bold text-gray-900">Add to Home Screen</h2>
-                <p className="text-gray-600">Three quick taps and you&apos;re in</p>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Add to Home Screen
+                </h2>
+                <p className="text-gray-600">
+                  Three quick taps and you&apos;re in
+                </p>
               </div>
 
               {/* Steps */}
@@ -263,7 +299,9 @@ export default function InstallPage() {
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       <Share className="h-5 w-5 text-blue-500" />
-                      <span className="text-sm text-gray-600">at the bottom of Safari</span>
+                      <span className="text-sm text-gray-600">
+                        at the bottom of Safari
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -322,8 +360,12 @@ export default function InstallPage() {
                 <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto text-3xl">
                   🧭
                 </div>
-                <h2 className="text-xl font-bold text-gray-900">Open in Safari</h2>
-                <p className="text-gray-600">iOS requires Safari to install apps</p>
+                <h2 className="text-xl font-bold text-gray-900">
+                  Open in Safari
+                </h2>
+                <p className="text-gray-600">
+                  iOS requires Safari to install apps
+                </p>
               </div>
 
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3">
@@ -374,29 +416,37 @@ export default function InstallPage() {
       {/* Why Install Section */}
       <div className="px-4 pb-12">
         <div className="max-w-md mx-auto space-y-3">
-          <h3 className="text-center text-amber-800 font-bold text-lg mb-4">Why Install?</h3>
-          
+          <h3 className="text-center text-amber-800 font-bold text-lg mb-4">
+            Why Install?
+          </h3>
+
           <div className="flex items-center gap-3 bg-white/80 rounded-xl p-4">
             <span className="text-2xl">⚡</span>
             <div>
               <p className="font-semibold text-gray-900">Works Offline</p>
-              <p className="text-sm text-gray-600">No worries about dodgy pub wifi</p>
+              <p className="text-sm text-gray-600">
+                No worries about dodgy pub wifi
+              </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3 bg-white/80 rounded-xl p-4">
             <span className="text-2xl">🔔</span>
             <div>
               <p className="font-semibold text-gray-900">Get Notifications</p>
-              <p className="text-sm text-gray-600">Know when pubs get captured</p>
+              <p className="text-sm text-gray-600">
+                Know when pubs get captured
+              </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3 bg-white/80 rounded-xl p-4">
             <span className="text-2xl">🚀</span>
             <div>
               <p className="font-semibold text-gray-900">Quick Access</p>
-              <p className="text-sm text-gray-600">One tap from your home screen</p>
+              <p className="text-sm text-gray-600">
+                One tap from your home screen
+              </p>
             </div>
           </div>
         </div>
