@@ -103,18 +103,35 @@ export async function sendPushNotificationToOthers(
       .select("subscription")
       .neq("player_id", excludePlayerId);
 
-    if (error || !subscriptions || subscriptions.length === 0) {
+    if (error) {
+      console.error("Error fetching subscriptions:", error);
       return 0;
     }
 
+    if (!subscriptions || subscriptions.length === 0) {
+      console.log(`No subscriptions found (excluding player ${excludePlayerId})`);
+      return 0;
+    }
+
+    console.log(`Sending push notifications to ${subscriptions.length} subscribers`);
+
     let successCount = 0;
-    const promises = subscriptions.map(async (sub) => {
-      const success = await sendPushNotification(sub.subscription, payload);
-      if (success) successCount++;
+    const results = await Promise.allSettled(
+      subscriptions.map(async (sub) => {
+        const success = await sendPushNotification(sub.subscription, payload);
+        if (success) successCount++;
+        return success;
+      })
+    );
+
+    // Log any failures
+    results.forEach((result, index) => {
+      if (result.status === "rejected") {
+        console.error(`Failed to send to subscription ${index}:`, result.reason);
+      }
     });
 
-    await Promise.allSettled(promises);
-
+    console.log(`Successfully sent ${successCount} of ${subscriptions.length} notifications`);
     return successCount;
   } catch (error) {
     console.error("Error sending push notifications to others:", error);
@@ -135,26 +152,39 @@ async function sendPushNotification(
   }
 
   try {
-    await webpush.sendNotification(
-      subscription as webpush.PushSubscription,
-      JSON.stringify(payload)
-    );
+    const sub = subscription as webpush.PushSubscription;
+    console.log("Sending push notification to:", sub.endpoint?.substring(0, 50) + "...");
+    console.log("Payload:", payload);
+
+    await webpush.sendNotification(sub, JSON.stringify(payload));
+    console.log("Push notification sent successfully");
     return true;
   } catch (error) {
     // Handle expired/invalid subscriptions
     if (
       error instanceof Error &&
-      (error.message.includes("410") || error.message.includes("expired"))
+      (error.message.includes("410") ||
+        error.message.includes("expired") ||
+        error.message.includes("Gone"))
     ) {
       console.log("Subscription expired, removing from database");
       // Optionally remove expired subscription from database
       const supabase = createSupabaseServiceRoleClient();
-      await supabase
-        .from("push_subscriptions")
-        .delete()
-        .eq("endpoint", (subscription as { endpoint: string }).endpoint);
+      const sub = subscription as { endpoint?: string };
+      if (sub.endpoint) {
+        await supabase
+          .from("push_subscriptions")
+          .delete()
+          .eq("endpoint", sub.endpoint);
+      }
     } else {
       console.error("Error sending push notification:", error);
+      if (error instanceof Error) {
+        console.error("Error details:", {
+          message: error.message,
+          stack: error.stack,
+        });
+      }
     }
     return false;
   }

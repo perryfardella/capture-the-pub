@@ -6,6 +6,7 @@ import { PubList } from "@/components/PubList";
 import { Scoreboard } from "@/components/Scoreboard";
 import { NotificationPrompt } from "@/components/NotificationPrompt";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { PushNotificationDebug } from "@/components/PushNotificationDebug";
 import { useGameState } from "@/lib/hooks/useGameState";
 import { useOffline } from "@/lib/hooks/useOffline";
 import { usePlayer } from "@/lib/hooks/usePlayer";
@@ -424,6 +425,9 @@ export default function Home() {
 
       {/* Install Prompt */}
       <InstallPrompt />
+
+      {/* Debug Panel (only shows with ?debug query param) */}
+      <PushNotificationDebug />
     </div>
   );
 }

@@ -3,10 +3,37 @@
 
 // Push notification handler
 self.addEventListener("push", function (event) {
-  const data = event.data?.json() || {};
-  const title = data.title || "Capture the Pub";
+  console.log("Push event received:", event);
+
+  let data = {};
+  let title = "Reuben's Bucks";
+  let body = "New game update";
+
+  // Try to parse the push data
+  if (event.data) {
+    try {
+      // Check if it's JSON text
+      const text = event.data.text();
+      if (text) {
+        data = JSON.parse(text);
+        title = data.title || title;
+        body = data.body || body;
+      }
+    } catch (e) {
+      console.error("Error parsing push data:", e);
+      // Fallback: try json() method if available
+      try {
+        data = event.data.json();
+        title = data.title || title;
+        body = data.body || body;
+      } catch (e2) {
+        console.error("Error parsing push data with json():", e2);
+      }
+    }
+  }
+
   const options = {
-    body: data.body || "New game update",
+    body: body,
     icon: "/manifest-icon-192.maskable.png",
     badge: "/manifest-icon-192.maskable.png",
     vibrate: [200, 100, 200],
@@ -16,7 +43,13 @@ self.addEventListener("push", function (event) {
     actions: data.actions || [],
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  console.log("Showing notification:", title, options);
+
+  event.waitUntil(
+    self.registration.showNotification(title, options).catch((err) => {
+      console.error("Error showing notification:", err);
+    })
+  );
 });
 
 // Notification click handler
