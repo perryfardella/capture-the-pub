@@ -68,33 +68,56 @@ export function usePushNotifications() {
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
+    console.log("requestPermission() called");
     if (!state.isSupported) {
       console.warn("Push notifications are not supported");
       return false;
     }
 
     if (state.permission === "granted") {
+      console.log("Permission already granted");
       return true;
     }
 
+    console.log("Requesting notification permission from browser...");
     const permission = await Notification.requestPermission();
+    console.log("Browser returned permission:", permission);
     setState((prev) => ({ ...prev, permission }));
+
+    if (permission === "granted") {
+      console.log("✅ Permission granted by user");
+    } else if (permission === "denied") {
+      console.warn("❌ Permission denied by user");
+    } else {
+      console.warn("⚠️ Permission default (user dismissed prompt)");
+    }
 
     return permission === "granted";
   }, [state.isSupported, state.permission]);
 
   const subscribe = useCallback(
     async (playerId: string): Promise<boolean> => {
+      console.log("subscribe() called with playerId:", playerId);
+      console.log("Current state:", {
+        isSupported: state.isSupported,
+        permission: state.permission,
+        isSubscribed: state.isSubscribed,
+      });
+
       if (!state.isSupported) {
         console.warn("Push notifications are not supported");
         return false;
       }
 
       if (state.permission !== "granted") {
+        console.log("Permission not granted, requesting permission...");
         const granted = await requestPermission();
+        console.log("Permission request result:", granted);
         if (!granted) {
+          console.warn("Permission was denied or not granted");
           return false;
         }
+        console.log("Permission granted, continuing with subscription...");
       }
 
       try {
