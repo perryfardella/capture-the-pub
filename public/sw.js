@@ -5,51 +5,64 @@
 self.addEventListener("push", function (event) {
   console.log("Push event received:", event);
 
-  let data = {};
-  let title = "Reuben's Bucks";
-  let body = "New game update";
+  const promiseChain = event.data
+    ? event.data
+        .json()
+        .then((data) => {
+          console.log("Parsed push data:", data);
+          const title = data.title || "Reuben's Bucks";
+          const body = data.body || "New game update";
 
-  // Try to parse the push data
-  if (event.data) {
-    try {
-      // Check if it's JSON text
-      const text = event.data.text();
-      if (text) {
-        data = JSON.parse(text);
-        title = data.title || title;
-        body = data.body || body;
-      }
-    } catch (e) {
-      console.error("Error parsing push data:", e);
-      // Fallback: try json() method if available
-      try {
-        data = event.data.json();
-        title = data.title || title;
-        body = data.body || body;
-      } catch (e2) {
-        console.error("Error parsing push data with json():", e2);
-      }
-    }
-  }
+          const options = {
+            body: body,
+            icon: "/manifest-icon-192.maskable.png",
+            badge: "/manifest-icon-192.maskable.png",
+            vibrate: [200, 100, 200],
+            tag: data.tag || "game-update",
+            data: data.data || {},
+            requireInteraction: false,
+            actions: data.actions || [],
+          };
 
-  const options = {
-    body: body,
-    icon: "/manifest-icon-192.maskable.png",
-    badge: "/manifest-icon-192.maskable.png",
-    vibrate: [200, 100, 200],
-    tag: data.tag || "game-update",
-    data: data.data || {},
-    requireInteraction: false,
-    actions: data.actions || [],
-  };
+          console.log("Showing notification:", title, options);
+          return self.registration.showNotification(title, options);
+        })
+        .catch((err) => {
+          console.error("Error parsing push data:", err);
+          // Fallback: try text() method
+          return event.data
+            .text()
+            .then((text) => {
+              const data = JSON.parse(text);
+              const title = data.title || "Reuben's Bucks";
+              const body = data.body || "New game update";
 
-  console.log("Showing notification:", title, options);
+              return self.registration.showNotification(title, {
+                body: body,
+                icon: "/manifest-icon-192.maskable.png",
+                badge: "/manifest-icon-192.maskable.png",
+                vibrate: [200, 100, 200],
+                tag: data.tag || "game-update",
+                data: data.data || {},
+              });
+            })
+            .catch((err2) => {
+              console.error("Error parsing push data as text:", err2);
+              // Last resort: show default notification
+              return self.registration.showNotification("Reuben's Bucks", {
+                body: "New game update",
+                icon: "/manifest-icon-192.maskable.png",
+              });
+            });
+        })
+    : Promise.resolve(
+        self.registration.showNotification("Reuben's Bucks", {
+          body: "New game update",
+          icon: "/manifest-icon-192.maskable.png",
+        })
+      );
 
-  event.waitUntil(
-    self.registration.showNotification(title, options).catch((err) => {
-      console.error("Error showing notification:", err);
-    })
-  );
+  event.waitUntil(promiseChain);
 });
 
 // Notification click handler
