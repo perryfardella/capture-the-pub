@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import {
   Dialog,
@@ -13,6 +13,60 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ActivityFeed({ feed }: { feed: any[] }) {
   const [previewMedia, setPreviewMedia] = useState<string | null>(null);
+  const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
+  const prevFeedIdsRef = useRef<Set<string>>(new Set());
+  const isInitialLoadRef = useRef(true);
+
+  // Track new items for animation
+  useEffect(() => {
+    const currentIds = new Set(feed.map((item) => item.id + item.type));
+    const prevIds = prevFeedIdsRef.current;
+
+    // Skip animation on initial load
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
+      prevFeedIdsRef.current = currentIds;
+      return;
+    }
+
+    // Find new items
+    const newIds = new Set<string>();
+    currentIds.forEach((id) => {
+      if (!prevIds.has(id)) {
+        newIds.add(id);
+      }
+    });
+
+    if (newIds.size > 0) {
+      setNewItemIds(newIds);
+      // Clear animation state after animation completes
+      setTimeout(() => setNewItemIds(new Set()), 800);
+    }
+
+    prevFeedIdsRef.current = currentIds;
+  }, [feed]);
+
+  const getItemIcon = (type: string, step?: string, success?: boolean) => {
+    if (type === "capture") return "🍺";
+    if (type === "bonus") return "⭐";
+    if (type === "challenge") {
+      if (step === "start") return "🎯";
+      return success ? "✅" : "❌";
+    }
+    return "📝";
+  };
+
+  if (feed.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-4xl mb-3">📸</div>
+        <p className="text-muted-foreground">No activity yet</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Captures and challenges will appear here
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -24,168 +78,169 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
           outline: none !important;
         }
       `}</style>
-      <div className="space-y-1.5">
-        {feed.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">
-            No activity yet
-          </p>
-        ) : (
-          <div className="space-y-1">
-            {feed.map((item) => (
+      <div className="space-y-3">
+        {feed.map((item, index) => {
+          const itemKey = item.id + item.type;
+          const isNew = newItemIds.has(itemKey);
+          const teamColor = item.teams?.color || "#666";
+
+          return (
+            <div
+              key={itemKey}
+              className={`relative rounded-xl border overflow-hidden transition-all ${
+                isNew ? "animate-slide-in-top" : ""
+              }`}
+              style={{
+                borderColor: teamColor + "40",
+                backgroundColor: teamColor + "08",
+                animationDelay: isNew ? `${index * 50}ms` : undefined,
+              }}
+            >
+              {/* Team color accent */}
               <div
-                key={item.id + item.type}
-                className="flex flex-col border-b border-border/50 pb-2 last:border-0"
-              >
-                {/* Header row with team name and timestamp */}
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium leading-tight">
-                      {item.type === "capture" && (
-                        <>
-                          <span
-                            className="inline-block w-2 h-2 rounded-full mr-1.5"
-                            style={{
-                              backgroundColor: item.teams?.color || "#666",
-                            }}
-                          />
-                          <span className="font-semibold">
-                            {item.players?.nickname || "Unknown Player"}
-                          </span>{" "}
-                          from{" "}
-                          <span className="font-semibold">
-                            {item.teams?.name || "Unknown Team"}
-                          </span>{" "}
-                          captured{" "}
-                          <span className="font-semibold">
-                            {item.pubName || item.pub_id}
-                          </span>{" "}
-                          with {item.drink_count || 0}{" "}
-                          {item.drink_count === 1 ? "drink" : "drinks"}
-                        </>
-                      )}
-                      {item.type === "challenge" && (
-                        <>
-                          <span
-                            className="inline-block w-2 h-2 rounded-full mr-1.5"
-                            style={{
-                              backgroundColor: item.teams?.color || "#666",
-                            }}
-                          />
-                          <span className="font-semibold">
-                            {item.players?.nickname || "Unknown Player"}
-                          </span>{" "}
-                          from{" "}
-                          <span className="font-semibold">
-                            {item.teams?.name || "Unknown Team"}
-                          </span>{" "}
-                          {item.step === "start"
-                            ? "started"
-                            : item.success
-                            ? "succeeded"
-                            : "failed"}{" "}
-                          {item.pubName ? (
-                            <>
-                              the challenge at{" "}
-                              <span className="font-semibold">
-                                {item.pubName}
-                              </span>
-                            </>
-                          ) : (
-                            "global challenge"
-                          )}
-                          {item.challengeDescription && (
-                            <>
-                              {" "}
-                              <span className="text-muted-foreground">
-                                ({item.challengeDescription})
-                              </span>
-                            </>
-                          )}
-                        </>
-                      )}
-                      {item.type === "bonus" && (
-                        <>
-                          <span
-                            className="inline-block w-2 h-2 rounded-full mr-1.5"
-                            style={{
-                              backgroundColor: item.teams?.color || "#666",
-                            }}
-                          />
-                          <span className="font-semibold">
-                            {item.players?.nickname || "Unknown Player"}
-                          </span>{" "}
-                          from{" "}
-                          <span className="font-semibold">
-                            {item.teams?.name || "Unknown Team"}
-                          </span>{" "}
-                          completed{" "}
-                          {item.challengeDescription ? (
-                            <>
-                              <span className="font-semibold">
-                                {item.challengeDescription}
-                              </span>{" "}
-                            </>
-                          ) : (
-                            "global challenge "
-                          )}
-                          and earned a bonus point! 🎉
-                        </>
-                      )}
-                    </p>
+                className="absolute left-0 top-0 bottom-0 w-1"
+                style={{ backgroundColor: teamColor }}
+              />
+
+              <div className="pl-4 pr-3 py-3">
+                {/* Header row */}
+                <div className="flex items-start gap-3">
+                  {/* Icon */}
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0"
+                    style={{ backgroundColor: teamColor + "20" }}
+                  >
+                    {getItemIcon(item.type, item.step, item.success)}
                   </div>
-                  <p className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
-                    {new Date(item.created_at).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm leading-snug">
+                        {item.type === "capture" && (
+                          <>
+                            <span className="font-semibold">
+                              {item.players?.nickname || "Unknown"}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              captured{" "}
+                            </span>
+                            <span className="font-semibold">
+                              {item.pubName || item.pub_id}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              ({item.drink_count || 0}{" "}
+                              {item.drink_count === 1 ? "drink" : "drinks"})
+                            </span>
+                          </>
+                        )}
+                        {item.type === "challenge" && (
+                          <>
+                            <span className="font-semibold">
+                              {item.players?.nickname || "Unknown"}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              {item.step === "start"
+                                ? "started"
+                                : item.success
+                                ? "passed"
+                                : "failed"}{" "}
+                            </span>
+                            {item.pubName ? (
+                              <>
+                                <span className="font-semibold">
+                                  {item.pubName}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {" "}
+                                  challenge
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">
+                                a challenge
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {item.type === "bonus" && (
+                          <>
+                            <span className="font-semibold">
+                              {item.players?.nickname || "Unknown"}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              earned{" "}
+                            </span>
+                            <span className="font-semibold text-amber-600">
+                              +1 bonus
+                            </span>
+                            {item.challengeDescription && (
+                              <span className="text-muted-foreground">
+                                {" "}
+                                for {item.challengeDescription}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </p>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0 mt-0.5">
+                        {new Date(item.created_at).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+
+                    {/* Team badge */}
+                    <div
+                      className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full text-xs"
+                      style={{
+                        backgroundColor: teamColor + "15",
+                        color: teamColor,
+                      }}
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{ backgroundColor: teamColor }}
+                      />
+                      {item.teams?.name || "Unknown Team"}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Media thumbnail - clickable */}
+                {/* Media thumbnail */}
                 {item.media_url && (
                   <button
                     onClick={() => setPreviewMedia(item.media_url)}
-                    className="mt-1.5 rounded overflow-hidden w-full text-left cursor-pointer hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary border-0 p-0 block"
-                    style={{ border: "none", outline: "none" }}
+                    className="mt-3 ml-11 rounded-lg overflow-hidden w-[calc(100%-2.75rem)] text-left cursor-pointer hover:opacity-90 active:scale-[0.99] transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary border-0 p-0 block"
                   >
                     {item.media_url.endsWith(".mp4") ? (
                       <video
                         src={item.media_url}
-                        className="w-full max-h-48 object-cover pointer-events-none block border-0 outline-0"
-                        style={{
-                          border: "none",
-                          outline: "none",
-                          display: "block",
-                        }}
+                        className="w-full max-h-40 object-cover pointer-events-none block rounded-lg"
                         playsInline
                         muted
                       />
                     ) : (
-                      <div
-                        className="w-full border-0 outline-0"
-                        style={{ border: "none", outline: "none" }}
-                      >
-                        <Image
-                          src={item.media_url}
-                          alt="evidence"
-                          width={400}
-                          height={300}
-                          className="w-full max-h-48 object-cover pointer-events-none block border-0 outline-0"
-                          style={{
-                            border: "none",
-                            outline: "none",
-                            display: "block",
-                          }}
-                          unoptimized
-                        />
-                      </div>
+                      <Image
+                        src={item.media_url}
+                        alt="evidence"
+                        width={400}
+                        height={300}
+                        className="w-full max-h-40 object-cover pointer-events-none block rounded-lg"
+                        unoptimized
+                      />
                     )}
                   </button>
                 )}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Preview Modal */}

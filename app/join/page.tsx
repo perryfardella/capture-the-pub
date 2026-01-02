@@ -13,26 +13,26 @@ export default function JoinPage() {
   const [teams, setTeams] = useState<any[]>([]);
   const [teamId, setTeamId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [teamsLoading, setTeamsLoading] = useState(true);
 
   useEffect(() => {
     async function loadTeams() {
+      setTeamsLoading(true);
       const { data, error } = await supabase.from("teams").select("*");
       if (error) {
         console.error("Error loading teams:", error);
+        setTeamsLoading(false);
         return;
       }
       setTeams(data ?? []);
+      setTeamsLoading(false);
     }
     loadTeams();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleJoin() {
-    console.log("handleJoin called", { nickname, teamId });
-
-    if (!nickname || !teamId) {
-      console.log("Validation failed", { nickname, teamId });
-      alert("Please enter a nickname and select a team");
+    if (!nickname.trim() || !teamId) {
       return;
     }
 
@@ -42,10 +42,6 @@ export default function JoinPage() {
     const normalizedNickname = nickname.trim();
     const normalizedLower = normalizedNickname.toLowerCase();
 
-    // Check if a player with this nickname AND team already exists (case-insensitive)
-    // This allows the same nickname on different teams, but reuses players rejoining the same team
-    // We need to fetch players and filter client-side since Supabase JS doesn't
-    // directly support case-insensitive filtering
     const { data: allPlayers, error: fetchError } = await supabase
       .from("players")
       .select("*");
@@ -67,13 +63,8 @@ export default function JoinPage() {
     let player;
 
     if (existingPlayer) {
-      // Player with this nickname on this team already exists - reuse them
-      console.log("Found existing player:", existingPlayer);
       player = existingPlayer;
     } else {
-      // No existing player on this team - create a new one
-      // This allows multiple players with the same name on different teams
-      console.log("Creating new player...");
       const { data: newPlayer, error } = await supabase
         .from("players")
         .insert({ nickname: normalizedNickname, team_id: teamId })
@@ -88,7 +79,6 @@ export default function JoinPage() {
       }
 
       player = newPlayer;
-      console.log("Player created successfully:", player);
     }
 
     // Store player_id locally
@@ -98,65 +88,153 @@ export default function JoinPage() {
     window.location.href = "/";
   }
 
+  const selectedTeam = teams.find((t) => t.id === teamId);
+  const canJoin = nickname.trim().length > 0 && teamId;
+
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-xl font-bold">Join the Game 🍻</h1>
-
-      <Input
-        placeholder="Nickname"
-        value={nickname}
-        onChange={(e) => setNickname(e.target.value)}
-      />
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Select Your Team</label>
-        {teams.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No teams available. Please contact the admin.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 gap-2">
-            {teams.map((team) => (
-              <label
-                key={team.id}
-                className={`flex items-center gap-3 border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                  teamId === team.id
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="team"
-                  value={team.id}
-                  checked={teamId === team.id}
-                  onChange={() => setTeamId(team.id)}
-                  className="sr-only"
-                />
-                <div
-                  className="w-8 h-8 rounded-full shrink-0 border-2 border-white shadow-sm"
-                  style={{ backgroundColor: team.color }}
-                />
-                <span className="font-medium flex-1">{team.name}</span>
-                {teamId === team.id && <span className="text-primary">✓</span>}
-              </label>
-            ))}
-          </div>
-        )}
+    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50">
+      {/* Hero */}
+      <div className="px-6 pt-10 pb-6 text-center animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="text-6xl mb-3">🍻</div>
+        <h1 className="text-2xl font-black text-amber-900">Capture the Pub</h1>
+        <p className="text-amber-700 mt-1">Reuben&apos;s Bucks Party</p>
       </div>
 
-      <Button
-        type="button"
-        disabled={loading}
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log("Button clicked!");
-          handleJoin();
-        }}
-      >
-        {loading ? "Joining..." : "Join Game"}
-      </Button>
+      {/* Form Card */}
+      <div className="px-4 pb-8">
+        <div className="bg-white rounded-2xl shadow-xl border-2 border-amber-200 overflow-hidden max-w-md mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+          <div className="p-6 space-y-6">
+            <div className="text-center">
+              <h2 className="text-xl font-bold text-gray-900">Join the Game</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Pick a name and choose your team
+              </p>
+            </div>
+
+            {/* Nickname Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Your Nickname
+              </label>
+              <Input
+                placeholder="e.g. Big Davo"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                className="text-lg py-6 px-4"
+                autoComplete="off"
+                autoCapitalize="words"
+              />
+            </div>
+
+            {/* Team Selection */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-gray-700">
+                Choose Your Team
+              </label>
+              {teamsLoading ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className="h-16 rounded-xl bg-muted animate-pulse"
+                    />
+                  ))}
+                </div>
+              ) : teams.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No teams available</p>
+                  <p className="text-sm mt-1">Contact the admin</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-2">
+                  {teams.map((team, index) => (
+                    <button
+                      key={team.id}
+                      type="button"
+                      onClick={() => setTeamId(team.id)}
+                      className={`flex items-center gap-4 border-2 rounded-xl p-4 transition-all duration-200 text-left animate-in fade-in slide-in-from-left-4 ${
+                        teamId === team.id
+                          ? "shadow-md scale-[1.02]"
+                          : "hover:shadow-sm hover:scale-[1.01] active:scale-[0.99]"
+                      }`}
+                      style={{
+                        borderColor:
+                          teamId === team.id ? team.color : "var(--border)",
+                        backgroundColor:
+                          teamId === team.id ? team.color + "15" : undefined,
+                        animationDelay: `${200 + index * 75}ms`,
+                      }}
+                    >
+                      <div
+                        className={`w-12 h-12 rounded-full shrink-0 flex items-center justify-center text-xl shadow-inner transition-transform ${
+                          teamId === team.id ? "scale-110" : ""
+                        }`}
+                        style={{ backgroundColor: team.color }}
+                      >
+                        {teamId === team.id ? "✓" : ""}
+                      </div>
+                      <div className="flex-1">
+                        <span
+                          className="font-semibold text-lg"
+                          style={{
+                            color: teamId === team.id ? team.color : undefined,
+                          }}
+                        >
+                          {team.name}
+                        </span>
+                      </div>
+                      {teamId === team.id && (
+                        <div
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-white text-sm font-bold animate-in zoom-in duration-200"
+                          style={{ backgroundColor: team.color }}
+                        >
+                          ✓
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Join Button */}
+            <Button
+              type="button"
+              size="lg"
+              disabled={loading || !canJoin}
+              onClick={handleJoin}
+              className={`w-full text-lg py-6 font-bold transition-all ${
+                canJoin && selectedTeam
+                  ? "bg-amber-500 hover:bg-amber-600"
+                  : ""
+              }`}
+              style={
+                canJoin && selectedTeam
+                  ? {
+                      backgroundColor: selectedTeam.color,
+                    }
+                  : undefined
+              }
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin">⏳</span>
+                  Joining...
+                </span>
+              ) : (
+                "Let's Go! 🍺"
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer hint */}
+      <div className="text-center px-6 pb-8 animate-in fade-in duration-1000 delay-500">
+        <p className="text-xs text-amber-600">
+          Already joined? Just enter the same name & team
+        </p>
+      </div>
     </div>
   );
 }

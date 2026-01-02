@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useMediaUpload } from "@/lib/hooks/useMediaUpload";
+import { Camera, CheckCircle, XCircle } from "lucide-react";
 
 export function ChallengeDialog({
   challengeId,
@@ -49,6 +50,7 @@ export function ChallengeDialog({
   const [submissionResult, setSubmissionResult] = useState<boolean | null>(
     null
   );
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const {
     uploadMedia,
@@ -59,6 +61,13 @@ export function ChallengeDialog({
     setError: setUploadError,
   } = useMediaUpload();
 
+  // Haptic feedback helper
+  function vibrate(pattern: number | number[] = 50) {
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
+  }
+
   function handleOpenChange(newOpen: boolean) {
     setOpen(newOpen);
     if (!newOpen) {
@@ -66,6 +75,7 @@ export function ChallengeDialog({
       setFile(null);
       setFileInputKey((prev) => prev + 1);
       resetUpload();
+      setShowSuccess(false);
       // Reset to start step for pub challenges
       if (challengeType === "pub") {
         setStep("start");
@@ -92,16 +102,18 @@ export function ChallengeDialog({
     }
   }, [challengeId, challengeDescription]);
 
-  async function submit() {
+  async function submit(selectedFile?: File) {
+    const fileToUpload = selectedFile || file;
+
     // Validate photo requirement for global challenges
-    if (challengeType === "global" && !file) {
+    if (challengeType === "global" && !fileToUpload) {
       setUploadError(
-        "Please upload a photo or video to complete this global challenge."
+        "Please upload a photo or video to complete this challenge."
       );
       return;
     }
     // Validate photo requirement for pub challenge start step
-    if (challengeType === "pub" && step === "start" && !file) return;
+    if (challengeType === "pub" && step === "start" && !fileToUpload) return;
 
     const playerId = localStorage.getItem("player_id");
     if (!playerId) {
@@ -119,11 +131,14 @@ export function ChallengeDialog({
       let mediaUrl: string | null = null;
 
       // Upload file directly to Supabase Storage if provided
-      if (file) {
-        const result = await uploadMedia(file, `challenges/${challengeId}`);
+      if (fileToUpload) {
+        const result = await uploadMedia(
+          fileToUpload,
+          `challenges/${challengeId}`
+        );
 
         if (result.error) {
-          // Error is already set by the hook
+          vibrate([50, 50, 50]);
           return;
         }
 
@@ -149,37 +164,53 @@ export function ChallengeDialog({
       if (!res.ok) {
         const errorText = await res.text();
         setUploadError(errorText);
+        vibrate([50, 50, 50]);
         return;
       }
 
+      // Success!
+      vibrate([50, 100, 50]);
+
       // Success - clear file and update state
       setFile(null);
-      setFileInputKey((prev) => prev + 1); // Reset file input
+      setFileInputKey((prev) => prev + 1);
       resetUpload();
+
       if (challengeType === "pub") {
         if (step === "start") {
           setStep("result");
-          setSuccess(null); // Reset success state for result step
+          setSuccess(null);
         } else {
           // Challenge result submitted - show confirmation
           setSubmissionResult(success);
           setStep("complete");
-          setFile(null);
-          setFileInputKey((prev) => prev + 1);
-          resetUpload();
         }
       } else {
-        // Global challenge completed
-        setFile(null);
-        setFileInputKey((prev) => prev + 1);
-        resetUpload();
-        setOpen(false);
-        onSuccess?.();
+        // Global challenge completed - show celebration then close
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          setOpen(false);
+          onSuccess?.();
+        }, 1500);
       }
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");
+      vibrate([50, 50, 50]);
     }
   }
+
+  // Auto-submit for global challenges and pub challenge start step when file is selected
+  useEffect(() => {
+    if (file && !loading && !showSuccess && !error) {
+      if (challengeType === "global") {
+        submit(file);
+      } else if (challengeType === "pub" && step === "start") {
+        submit(file);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file, challengeType, step]);
 
   // Check if player's team already completed this global challenge
   const isTeamCompleted = Boolean(
@@ -187,12 +218,6 @@ export function ChallengeDialog({
       playerTeamId &&
       completedByTeamId === playerTeamId
   );
-  const isDisabled =
-    disabled ||
-    loading ||
-    isTeamCompleted ||
-    (challengeType === "pub" && step === "start" && !file) ||
-    (challengeType === "global" && !file);
 
   // Global challenge dialog UI
   if (challengeType === "global") {
@@ -207,98 +232,118 @@ export function ChallengeDialog({
           </Button>
         </DialogTrigger>
 
-        <DialogContent>
-          <DialogTitle>Complete Challenge</DialogTitle>
-          <DialogDescription>
-            {challengeDescription ||
-              "Upload photo or video evidence to complete this challenge and earn a bonus point."}
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle className="text-center text-xl">
+            {showSuccess ? "🎉 Challenge Complete!" : "Complete Challenge"}
+          </DialogTitle>
+          <DialogDescription className="text-center">
+            {showSuccess
+              ? "+1 bonus point for your team!"
+              : challengeDescription ||
+                "Upload evidence to earn a bonus point."}
           </DialogDescription>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Complete this challenge to earn <strong>+1 bonus point</strong>{" "}
-                for your team.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Photo or Video Evidence *</Label>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={loading}
-              >
-                📁 Choose Photo or Video from Library
-              </Button>
-              <Input
-                ref={fileInputRef}
-                key={fileInputKey}
-                type="file"
-                accept="image/*,video/*"
-                className="hidden"
-                onChange={(e) => {
-                  setFile(e.target.files?.[0] ?? null);
-                  resetUpload();
-                }}
-                disabled={loading}
-              />
-              {file && (
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    Selected: {file.name} (
-                    {(file.size / 1024 / 1024).toFixed(2)}
-                    MB)
-                  </p>
-                  {uploadProgress !== null && (
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>Uploading...</span>
-                        <span>{Math.round(uploadProgress)}%</span>
-                      </div>
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary transition-all duration-300"
-                          style={{ width: `${uploadProgress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setFile(null);
-                      setFileInputKey((prev) => prev + 1);
-                      resetUpload();
-                    }}
-                    disabled={loading}
-                  >
-                    Remove
-                  </Button>
+          <div className="space-y-4 pt-2">
+            {/* Success State */}
+            {showSuccess && (
+              <div className="flex flex-col items-center justify-center py-8 animate-in zoom-in-50 duration-300">
+                <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                  <CheckCircle className="h-12 w-12 text-green-600" />
                 </div>
-              )}
-            </div>
-
-            {error && (
-              <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
-                {error}
+                <p className="text-lg font-semibold text-green-600">
+                  Bonus Point Earned!
+                </p>
               </div>
             )}
 
-            <Button disabled={isDisabled} onClick={submit} className="w-full">
-              {loading ? "Submitting..." : "Submit Challenge"}
-            </Button>
+            {/* Upload State */}
+            {loading && !showSuccess && (
+              <div className="flex flex-col items-center justify-center py-8">
+                <div className="relative w-20 h-20 mb-4">
+                  <div className="absolute inset-0 rounded-full border-4 border-muted" />
+                  <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-lg font-bold">
+                      {Math.round(uploadProgress || 0)}%
+                    </span>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {(uploadProgress || 0) < 30
+                    ? "Preparing..."
+                    : "Uploading evidence..."}
+                </p>
+              </div>
+            )}
+
+            {/* File Selection State */}
+            {!loading && !showSuccess && (
+              <>
+                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 text-center mb-2">
+                  <p className="text-sm font-medium">
+                    Complete this challenge to earn{" "}
+                    <strong>+1 bonus point</strong>
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  className="w-full py-8 px-4 border-2 border-dashed border-primary/30 rounded-xl bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all flex flex-col items-center justify-center gap-3 active:scale-[0.98]"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Camera className="h-7 w-7 text-primary" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-semibold text-base">Tap to add proof</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Photo or video evidence
+                    </p>
+                  </div>
+                </button>
+                <Input
+                  ref={fileInputRef}
+                  key={fileInputKey}
+                  type="file"
+                  accept="image/*,video/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const selectedFile = e.target.files?.[0];
+                    if (selectedFile) {
+                      setFile(selectedFile);
+                      resetUpload();
+                    }
+                  }}
+                />
+              </>
+            )}
+
+            {/* Error State */}
+            {error && !loading && (
+              <div className="space-y-3">
+                <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg text-center">
+                  {error}
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setFile(null);
+                    resetUpload();
+                    fileInputRef.current?.click();
+                  }}
+                >
+                  Try Again
+                </Button>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
     );
   }
 
-  // Pub challenge UI - now using Dialog
+  // Pub challenge UI
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -310,39 +355,39 @@ export function ChallengeDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent>
-        <DialogTitle>
-          {pubName ? `${pubName} Challenge` : "Pub Challenge"}
+      <DialogContent className="sm:max-w-md">
+        <DialogTitle className="text-center text-xl">
+          {step === "complete"
+            ? submissionResult
+              ? "🎉 Challenge Passed!"
+              : "Challenge Failed"
+            : pubName
+            ? `${pubName} Challenge`
+            : "Pub Challenge"}
         </DialogTitle>
-        <DialogDescription>
-          {challengeDescription ||
-            "Complete this challenge to lock this pub for your team!"}
+        <DialogDescription className="text-center">
+          {step === "complete"
+            ? submissionResult
+              ? "The pub is now locked for your team!"
+              : "Better luck next time. You can try again."
+            : challengeDescription ||
+              "Complete this challenge to lock this pub!"}
         </DialogDescription>
 
-        <div className="space-y-4">
+        <div className="space-y-4 pt-2">
           {step === "complete" ? (
             // Completion screen
-            <div className="space-y-4 text-center">
+            <div className="flex flex-col items-center justify-center py-6 animate-in zoom-in-50 duration-300">
               <div
-                className={`mx-auto flex items-center justify-center w-16 h-16 rounded-full text-2xl ${
-                  submissionResult
-                    ? "bg-green-100 text-green-600"
-                    : "bg-red-100 text-red-600"
+                className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 ${
+                  submissionResult ? "bg-green-100" : "bg-red-100"
                 }`}
               >
-                {submissionResult ? "✓" : "✗"}
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold">
-                  {submissionResult
-                    ? "Challenge Passed! 🎉"
-                    : "Challenge Failed"}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {submissionResult
-                    ? "Your submission has been received. The pub is now locked for your team!"
-                    : "Your submission has been received. You can try again from the pub tab if you wish."}
-                </p>
+                {submissionResult ? (
+                  <CheckCircle className="h-12 w-12 text-green-600" />
+                ) : (
+                  <XCircle className="h-12 w-12 text-red-600" />
+                )}
               </div>
               <Button
                 onClick={() => {
@@ -362,188 +407,216 @@ export function ChallengeDialog({
               {/* Step indicator */}
               <div className="flex items-center gap-2 text-sm">
                 <div
-                  className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${
+                  className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-all ${
                     step === "start"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
+                      ? "bg-primary text-primary-foreground scale-110"
+                      : "bg-green-100 text-green-600"
                   }`}
                 >
-                  1
+                  {step === "start" ? "1" : "✓"}
                 </div>
-                <div className="flex-1 h-px bg-muted" />
                 <div
-                  className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${
+                  className={`flex-1 h-1 rounded ${
+                    step === "result" ? "bg-primary" : "bg-muted"
+                  }`}
+                />
+                <div
+                  className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-all ${
                     step === "result"
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary text-primary-foreground scale-110"
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
                   2
                 </div>
               </div>
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div className="flex justify-between text-xs text-muted-foreground px-1">
                 <span
                   className={
-                    step === "start" ? "font-medium text-foreground" : ""
+                    step === "start"
+                      ? "font-semibold text-foreground"
+                      : "text-green-600"
                   }
                 >
-                  Pay Entry Fee
+                  Entry Fee
                 </span>
                 <span
                   className={
-                    step === "result" ? "font-medium text-foreground" : ""
+                    step === "result" ? "font-semibold text-foreground" : ""
                   }
                 >
-                  Submit Result
+                  Result
                 </span>
               </div>
-            </>
-          )}
 
-          {step === "start" && (
-            <div className="space-y-2">
-              <div className="p-3 bg-muted/50 rounded-md border border-dashed">
-                <p className="text-sm font-medium mb-1">
-                  🍺 Entry Fee Required
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Upload a photo or video of your drink to start this challenge.
-                  This is your entry fee!
-                </p>
-              </div>
-            </div>
-          )}
-
-          {step === "result" && (
-            <div className="space-y-2">
-              <div className="p-3 bg-muted/50 rounded-md border border-dashed">
-                <p className="text-sm font-medium mb-1">
-                  ✅ Challenge Complete
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Did you succeed or fail? Select your result below and submit
-                  evidence.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>Challenge Result *</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant={success === true ? "default" : "outline"}
-                    onClick={() => setSuccess(true)}
-                    className="flex-1"
-                    disabled={loading}
-                  >
-                    ✓ Passed
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={success === false ? "default" : "outline"}
-                    onClick={() => setSuccess(false)}
-                    className="flex-1"
-                    disabled={loading}
-                  >
-                    ✗ Failed
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step !== "complete" && (
-            <>
-              <div className="space-y-2">
-                <Label>
-                  {step === "start"
-                    ? "Upload Photo or Video (Entry Fee) *"
-                    : "Upload Photo or Video (Evidence) *"}
-                </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={loading}
-                >
-                  📁 Choose Photo or Video from Library
-                </Button>
-                <Input
-                  ref={fileInputRef}
-                  key={fileInputKey}
-                  type="file"
-                  accept="image/*,video/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    setFile(e.target.files?.[0] ?? null);
-                    resetUpload();
-                  }}
-                  disabled={loading}
-                />
-                {file && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Selected: {file.name} (
-                      {(file.size / 1024 / 1024).toFixed(2)} MB)
-                    </p>
-                    {uploadProgress !== null && (
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Uploading...</span>
-                          <span>{Math.round(uploadProgress)}%</span>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary transition-all duration-300"
-                            style={{ width: `${uploadProgress}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setFile(null);
-                        setFileInputKey((prev) => prev + 1);
-                        resetUpload();
-                      }}
-                      disabled={loading}
-                      className="w-full"
-                    >
-                      Remove
-                    </Button>
+              {/* Upload State */}
+              {loading && (
+                <div className="flex flex-col items-center justify-center py-6">
+                  <div className="relative w-20 h-20 mb-4">
+                    <div className="absolute inset-0 rounded-full border-4 border-muted" />
+                    <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-lg font-bold">
+                        {Math.round(uploadProgress || 0)}%
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
-
-              {error && (
-                <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
-                  {error}
+                  <p className="text-sm text-muted-foreground">
+                    {(uploadProgress || 0) < 30
+                      ? "Preparing..."
+                      : "Uploading..."}
+                  </p>
                 </div>
               )}
 
-              <Button
-                disabled={isDisabled || (step === "result" && success === null)}
-                onClick={submit}
-                className="w-full"
-                variant={
-                  step === "start"
-                    ? "default"
-                    : success === true
-                    ? "default"
-                    : "destructive"
-                }
-              >
-                {loading
-                  ? "Submitting..."
-                  : step === "start"
-                  ? "🍺 Pay Entry Fee & Start Challenge"
-                  : success === true
-                  ? "✅ Submit Success Result"
-                  : "❌ Submit Failure Result"}
-              </Button>
+              {step === "start" && !loading && (
+                <>
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <p className="text-sm font-medium text-amber-800 flex items-center gap-2">
+                      🍺 Entry Fee Required
+                    </p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Snap a photo of your drink to start the challenge!
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="w-full py-8 px-4 border-2 border-dashed border-amber-300 rounded-xl bg-amber-50 hover:bg-amber-100 hover:border-amber-400 transition-all flex flex-col items-center justify-center gap-3 active:scale-[0.98]"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center">
+                      <Camera className="h-7 w-7 text-amber-600" />
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold text-base text-amber-800">
+                        Tap to pay entry fee
+                      </p>
+                      <p className="text-xs text-amber-600 mt-1">
+                        Photo of your drink
+                      </p>
+                    </div>
+                  </button>
+                </>
+              )}
+
+              {step === "result" && !loading && (
+                <>
+                  <div className="p-3 bg-muted/50 rounded-lg border">
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      ✅ Entry fee paid!
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Now report whether you passed or failed the challenge.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Did you pass?</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setSuccess(true)}
+                        className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                          success === true
+                            ? "border-green-500 bg-green-50"
+                            : "border-muted hover:border-green-300 hover:bg-green-50/50"
+                        }`}
+                      >
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            success === true
+                              ? "bg-green-500 text-white"
+                              : "bg-green-100 text-green-600"
+                          }`}
+                        >
+                          ✓
+                        </div>
+                        <span
+                          className={`font-medium ${
+                            success === true ? "text-green-700" : ""
+                          }`}
+                        >
+                          Passed
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSuccess(false)}
+                        className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                          success === false
+                            ? "border-red-500 bg-red-50"
+                            : "border-muted hover:border-red-300 hover:bg-red-50/50"
+                        }`}
+                      >
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                            success === false
+                              ? "bg-red-500 text-white"
+                              : "bg-red-100 text-red-600"
+                          }`}
+                        >
+                          ✗
+                        </div>
+                        <span
+                          className={`font-medium ${
+                            success === false ? "text-red-700" : ""
+                          }`}
+                        >
+                          Failed
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {success !== null && (
+                    <Button
+                      onClick={() => submit()}
+                      className="w-full"
+                      variant={success ? "default" : "destructive"}
+                    >
+                      {success ? "✅ Submit Pass" : "❌ Submit Fail"}
+                    </Button>
+                  )}
+                </>
+              )}
+
+              <Input
+                ref={fileInputRef}
+                key={fileInputKey}
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={(e) => {
+                  const selectedFile = e.target.files?.[0];
+                  if (selectedFile) {
+                    setFile(selectedFile);
+                    resetUpload();
+                  }
+                }}
+              />
+
+              {/* Error State */}
+              {error && !loading && (
+                <div className="space-y-3">
+                  <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg text-center">
+                    {error}
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setFile(null);
+                      resetUpload();
+                      if (step === "start") {
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </div>

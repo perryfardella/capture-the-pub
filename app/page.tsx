@@ -257,28 +257,39 @@ export default function Home() {
   return (
     <div className="flex flex-col h-screen pb-20">
       {/* Header */}
-      <header className="border-b bg-background px-4 py-2">
+      <header className="border-b bg-background/95 backdrop-blur-sm px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
-          <div className="flex flex-col gap-0.5">
-            <h1 className="text-base font-bold leading-tight">
-              Capture the Pub
-            </h1>
-            <p className="text-xs text-muted-foreground leading-tight">
-              Reuben's Bucks
-            </p>
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🍻</span>
+            <div className="flex flex-col">
+              <h1 className="text-base font-bold leading-tight">
+                Capture the Pub
+              </h1>
+              <p className="text-xs text-muted-foreground leading-tight">
+                Reuben&apos;s Bucks
+              </p>
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-1">
-            <span className="font-medium text-sm">{player?.nickname}</span>
+          <div className="flex items-center gap-2">
             {playerTeam && (
-              <span
-                className="px-2 py-0.5 rounded text-xs font-medium"
+              <div
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full"
                 style={{
-                  backgroundColor: playerTeam.color + "22",
-                  color: playerTeam.color,
+                  backgroundColor: playerTeam.color + "15",
+                  borderColor: playerTeam.color + "40",
                 }}
               >
-                {playerTeam.name}
-              </span>
+                <span
+                  className="w-2.5 h-2.5 rounded-full"
+                  style={{ backgroundColor: playerTeam.color }}
+                />
+                <span
+                  className="font-semibold text-sm"
+                  style={{ color: playerTeam.color }}
+                >
+                  {player?.nickname}
+                </span>
+              </div>
             )}
           </div>
         </div>
@@ -331,13 +342,13 @@ export default function Home() {
                           isTeamCompleted
                             ? "bg-muted/30 border-amber-200"
                             : isAvailable
-                            ? "bg-gradient-to-br from-background to-muted/20 border-primary/20 shadow-sm"
+                            ? "bg-linear-to-br from-background to-muted/20 border-primary/20 shadow-sm"
                             : "bg-muted/10 border-muted"
                         }`}
                       >
                         <div className="flex items-start gap-3 mb-3">
                           <div
-                            className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-lg ${
+                            className={`shrink-0 w-10 h-10 rounded-lg flex items-center justify-center text-lg ${
                               isTeamCompleted
                                 ? "bg-amber-100 text-amber-600"
                                 : isAvailable
@@ -353,12 +364,12 @@ export default function Home() {
                                 {c.description}
                               </h3>
                               {isTeamCompleted && (
-                                <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
+                                <span className="shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">
                                   Completed
                                 </span>
                               )}
                               {!isActive && (
-                                <span className="flex-shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-muted text-muted-foreground">
+                                <span className="shrink-0 px-2 py-0.5 text-xs font-medium rounded-full bg-muted text-muted-foreground">
                                   Inactive
                                 </span>
                               )}
@@ -394,21 +405,43 @@ export default function Home() {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-background">
-        <div className="grid grid-cols-4 gap-1 p-2">
-          {tabs.map((tab) => (
-            <Button
-              key={tab.id}
-              variant={activeTab === tab.id ? "default" : "ghost"}
-              className="flex flex-col items-center gap-1 h-auto py-2 px-1 text-xs"
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <span className="text-lg">{tab.icon}</span>
-              <span className="text-center leading-tight whitespace-normal break-words">
-                {tab.label}
-              </span>
-            </Button>
-          ))}
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur-sm">
+        <div className="grid grid-cols-4 gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  // Haptic feedback
+                  if (typeof navigator !== "undefined" && navigator.vibrate) {
+                    navigator.vibrate(10);
+                  }
+                }}
+                className={`flex flex-col items-center gap-1 h-auto py-2 px-1 rounded-lg transition-all active:scale-95 ${
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                }`}
+              >
+                <span
+                  className={`text-xl transition-transform ${
+                    isActive ? "scale-110" : ""
+                  }`}
+                >
+                  {tab.icon}
+                </span>
+                <span
+                  className={`text-[10px] text-center leading-tight whitespace-nowrap ${
+                    isActive ? "font-semibold" : "font-medium"
+                  }`}
+                >
+                  {tab.id === "challenges" ? "Challenges" : tab.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

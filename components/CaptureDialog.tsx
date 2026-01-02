@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -12,20 +11,26 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useMediaUpload } from "@/lib/hooks/useMediaUpload";
+import { Camera, CheckCircle, Loader2 } from "lucide-react";
 
 export function CaptureDialog({
   pubId,
   pubName,
   currentDrinkCount,
   disabled,
+  triggerClassName,
+  onOpenChange: externalOnOpenChange,
 }: {
   pubId: string;
   pubName: string;
   currentDrinkCount: number;
   disabled?: boolean;
+  triggerClassName?: string;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [open, setOpen] = useState(false);
+  const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -39,29 +44,35 @@ export function CaptureDialog({
 
   function handleOpenChange(newOpen: boolean) {
     setOpen(newOpen);
+    externalOnOpenChange?.(newOpen);
     if (!newOpen) {
       // Reset form when dialog closes
       setFile(null);
+      setSuccess(false);
       resetUpload();
     }
   }
 
-  async function submit() {
-    // Frontend validation
-    if (!file) {
-      return;
+  // Haptic feedback helper
+  function vibrate(pattern: number | number[] = 50) {
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(pattern);
     }
+  }
 
+  async function submit(selectedFile: File) {
     const playerId = localStorage.getItem("player_id");
     if (!playerId) {
+      setUploadError("No player session found. Please rejoin the game.");
       return;
     }
 
     // Upload media using shared hook
-    const result = await uploadMedia(file, `captures/${pubId}`);
+    const result = await uploadMedia(selectedFile, `captures/${pubId}`);
 
     if (result.error || !result.mediaUrl) {
       // Error is already set by the hook
+      vibrate([50, 50, 50]); // Error vibration pattern
       return;
     }
 
@@ -79,102 +90,144 @@ export function CaptureDialog({
     if (!res.ok) {
       const errorText = await res.text();
       setUploadError(errorText);
+      vibrate([50, 50, 50]); // Error vibration pattern
       return;
     }
 
-    // Reset form on success and close dialog
-    setFile(null);
-    resetUpload();
-    setOpen(false);
+    // Success! Show celebration
+    vibrate([50, 100, 50]); // Success vibration pattern
+    setSuccess(true);
+
+    // Auto-close after celebration
+    setTimeout(() => {
+      setFile(null);
+      setSuccess(false);
+      resetUpload();
+      setOpen(false);
+    }, 1500);
   }
+
+  // Auto-submit when file is selected
+  useEffect(() => {
+    if (file && !loading && !success && !error) {
+      submit(file);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file]);
 
   const nextDrinkCount = currentDrinkCount + 1;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button disabled={disabled}>Capture</Button>
+        <Button disabled={disabled} className={triggerClassName}>
+          Capture
+        </Button>
       </DialogTrigger>
 
-      <DialogContent>
-        <DialogTitle>Capture {pubName}</DialogTitle>
-        <DialogDescription>
-          Submit photo or video evidence to capture this pub for your team.
+      <DialogContent className="sm:max-w-md">
+        <DialogTitle className="text-center text-xl">
+          {success ? "🎉 Captured!" : `Capture ${pubName}`}
+        </DialogTitle>
+        <DialogDescription className="text-center">
+          {success
+            ? "Nice one! The pub is yours."
+            : `Drink #${nextDrinkCount} required. Snap a photo to claim it.`}
         </DialogDescription>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              To capture this pub, you need to drink{" "}
-              <strong>{nextDrinkCount}</strong> drink(s).
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Photo or Video Evidence *</Label>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              📁 Choose Photo or Video from Library
-            </Button>
-            <Input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              className="hidden"
-              onChange={(e) => {
-                setFile(e.target.files?.[0] ?? null);
-                resetUpload();
-              }}
-            />
-            {file && (
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">
-                  Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)}
-                  MB)
-                </p>
-                {uploadProgress !== null && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Uploading...</span>
-                      <span>{Math.round(uploadProgress)}%</span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-all duration-300"
-                        style={{ width: `${uploadProgress}%` }}
-                      />
-                    </div>
-                  </div>
-                )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setFile(null);
-                    resetUpload();
-                  }}
-                  disabled={loading}
-                >
-                  Remove
-                </Button>
+        <div className="space-y-4 pt-2">
+          {/* Success State */}
+          {success && (
+            <div className="flex flex-col items-center justify-center py-8 animate-in zoom-in-50 duration-300">
+              <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                <CheckCircle className="h-12 w-12 text-green-600" />
               </div>
-            )}
-          </div>
-
-          {error && (
-            <div className="text-sm text-destructive bg-destructive/10 p-2 rounded">
-              {error}
+              <p className="text-lg font-semibold text-green-600">
+                Pub Captured!
+              </p>
             </div>
           )}
 
-          <Button disabled={loading} onClick={submit} className="w-full">
-            {loading ? "Submitting..." : "Submit Capture"}
-          </Button>
+          {/* Upload State */}
+          {loading && !success && (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="relative w-20 h-20 mb-4">
+                <div className="absolute inset-0 rounded-full border-4 border-muted" />
+                <div
+                  className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin"
+                  style={{
+                    clipPath: `polygon(0 0, 100% 0, 100% 100%, 0 100%)`,
+                  }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-lg font-bold">
+                    {Math.round(uploadProgress || 0)}%
+                  </span>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {(uploadProgress || 0) < 30
+                  ? "Preparing..."
+                  : "Uploading evidence..."}
+              </p>
+            </div>
+          )}
+
+          {/* File Selection State */}
+          {!loading && !success && (
+            <>
+              <button
+                type="button"
+                className="w-full py-8 px-4 border-2 border-dashed border-primary/30 rounded-xl bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all flex flex-col items-center justify-center gap-3 active:scale-[0.98]"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Camera className="h-7 w-7 text-primary" />
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-base">
+                    Tap to add photo or video
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select from camera or gallery
+                  </p>
+                </div>
+              </button>
+              <Input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={(e) => {
+                  const selectedFile = e.target.files?.[0];
+                  if (selectedFile) {
+                    setFile(selectedFile);
+                    resetUpload();
+                  }
+                }}
+              />
+            </>
+          )}
+
+          {/* Error State */}
+          {error && !loading && (
+            <div className="space-y-3">
+              <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg text-center">
+                {error}
+              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setFile(null);
+                  resetUpload();
+                  fileInputRef.current?.click();
+                }}
+              >
+                Try Again
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
