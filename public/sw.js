@@ -1,9 +1,22 @@
 // Service worker for push notifications
 // Based on Next.js PWA guide: https://nextjs.org/docs/app/guides/progressive-web-apps
 
+// Activate immediately when installed (skip waiting)
+self.addEventListener("install", function (event) {
+  console.log("Service worker installing, skipping wait");
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", function (event) {
+  console.log("Service worker activating, claiming clients");
+  event.waitUntil(self.clients.claim());
+});
+
 // Push notification handler
 self.addEventListener("push", function (event) {
-  console.log("Push event received:", event);
+  console.log("=== PUSH EVENT RECEIVED ===");
+  console.log("Push event:", event);
+  console.log("Has data:", !!event.data);
 
   const promiseChain = event.data
     ? event.data
@@ -25,7 +38,14 @@ self.addEventListener("push", function (event) {
           };
 
           console.log("Showing notification:", title, options);
-          return self.registration.showNotification(title, options);
+          return self.registration.showNotification(title, options)
+            .then(() => {
+              console.log("✅ Notification displayed successfully");
+            })
+            .catch((notifErr) => {
+              console.error("❌ Error displaying notification:", notifErr);
+              throw notifErr;
+            });
         })
         .catch((err) => {
           console.error("Error parsing push data:", err);
@@ -59,6 +79,10 @@ self.addEventListener("push", function (event) {
         self.registration.showNotification("Reuben's Bucks", {
           body: "New game update",
           icon: "/manifest-icon-192.maskable.png",
+        }).then(() => {
+          console.log("No-data notification displayed");
+        }).catch((err) => {
+          console.error("Failed to show no-data notification:", err);
         })
       );
 

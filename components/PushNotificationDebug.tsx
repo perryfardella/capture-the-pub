@@ -34,6 +34,14 @@ export function PushNotificationDebug() {
   const sendTestNotification = async () => {
     try {
       setTestResult("Sending...");
+      
+      // Check service worker registration
+      if ("serviceWorker" in navigator) {
+        const registration = await navigator.serviceWorker.ready;
+        console.log("Service worker registration:", registration);
+        console.log("Service worker state:", registration.active?.state);
+      }
+      
       const response = await fetch("/api/push/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -42,9 +50,14 @@ export function PushNotificationDebug() {
       const data = await response.json();
       setTestResult(
         data.success
-          ? `✅ ${data.message}`
+          ? `✅ ${data.message}\n\nCheck the Service Worker console (DevTools > Application > Service Workers) to see if the push event was received.`
           : `❌ Error: ${data.error || "Unknown error"}`
       );
+      
+      // Wait a moment and check if notification was shown
+      setTimeout(() => {
+        console.log("After sending notification, check browser notifications and service worker console");
+      }, 2000);
     } catch (error) {
       setTestResult(`❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     }

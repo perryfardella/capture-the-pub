@@ -72,14 +72,31 @@ export async function sendPushNotificationToAll(
       return 0;
     }
 
+    console.log(`Retrieved ${subscriptions.length} subscriptions from database`);
+    
     let successCount = 0;
-    const promises = subscriptions.map(async (sub) => {
-      const success = await sendPushNotification(sub.subscription, payload);
+    const promises = subscriptions.map(async (sub, index) => {
+      console.log(`Processing subscription ${index + 1}/${subscriptions.length}:`, {
+        hasSubscription: !!sub.subscription,
+        subscriptionType: typeof sub.subscription,
+        subscriptionKeys: sub.subscription ? Object.keys(sub.subscription) : null,
+      });
+      
+      // Ensure subscription has the correct format
+      const subscription = sub.subscription;
+      if (!subscription || typeof subscription !== 'object') {
+        console.error(`Invalid subscription format at index ${index}:`, subscription);
+        return;
+      }
+      
+      const success = await sendPushNotification(subscription, payload);
       if (success) successCount++;
+      return success;
     });
 
     await Promise.allSettled(promises);
 
+    console.log(`Successfully sent ${successCount} of ${subscriptions.length} notifications`);
     return successCount;
   } catch (error) {
     console.error("Error sending push notifications to all:", error);
@@ -154,10 +171,17 @@ async function sendPushNotification(
   try {
     const sub = subscription as webpush.PushSubscription;
     console.log("Sending push notification to:", sub.endpoint?.substring(0, 50) + "...");
+    console.log("Subscription format:", {
+      endpoint: sub.endpoint,
+      hasKeys: !!sub.keys,
+      keysType: typeof sub.keys,
+      keys: sub.keys ? Object.keys(sub.keys) : null,
+    });
     console.log("Payload:", payload);
+    console.log("Payload JSON:", JSON.stringify(payload));
 
-    await webpush.sendNotification(sub, JSON.stringify(payload));
-    console.log("Push notification sent successfully");
+    const result = await webpush.sendNotification(sub, JSON.stringify(payload));
+    console.log("Push notification sent successfully, result:", result);
     return true;
   } catch (error) {
     // Handle expired/invalid subscriptions
