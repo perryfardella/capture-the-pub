@@ -138,6 +138,12 @@ export function usePushNotifications() {
         };
 
         // Send subscription to server
+        console.log("Sending subscription to server:", {
+          playerId,
+          endpoint: subscriptionJson.endpoint.substring(0, 50) + "...",
+          hasKeys: !!subscriptionJson.keys,
+        });
+
         const subscribeResponse = await fetch("/api/push/subscribe", {
           method: "POST",
           headers: {
@@ -151,11 +157,15 @@ export function usePushNotifications() {
 
         if (!subscribeResponse.ok) {
           const errorData = await subscribeResponse.json().catch(() => ({}));
+          console.error("Failed to save subscription:", errorData);
           throw new Error(
             errorData.error ||
               `Failed to save subscription: ${subscribeResponse.statusText}`
           );
         }
+
+        const result = await subscribeResponse.json();
+        console.log("Subscription saved successfully:", result);
 
         setState((prev) => ({
           ...prev,
