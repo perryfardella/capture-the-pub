@@ -1,5 +1,6 @@
 import "./globals.css";
 import { GameStatusBanner } from "@/components/GameStateBanner";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
@@ -45,6 +46,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className="bg-background text-foreground">
+        <ServiceWorkerRegistration />
         <div className="mx-auto max-w-md min-h-dvh">
           <GameStatusBanner />
           {children}

@@ -36,15 +36,48 @@ export function usePushNotifications() {
 
     // Check if already subscribed
     if (isSupported && "serviceWorker" in navigator) {
-      navigator.serviceWorker.ready.then((registration) => {
-        registration.pushManager.getSubscription().then((subscription) => {
-          setState((prev) => ({
-            ...prev,
-            subscription,
-            isSubscribed: !!subscription,
-          }));
-        });
-      });
+      // Wait for page to fully load before checking service worker
+      const checkServiceWorker = async () => {
+        try {
+          // Wait a bit for next-pwa's auto-registration
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+          
+          let registration = await navigator.serviceWorker.getRegistration();
+          
+          // If still no registration, try to register manually
+          if (!registration) {
+            try {
+              registration = await navigator.serviceWorker.register("/sw.js", {
+                scope: "/",
+              });
+              console.log("Manually registered service worker");
+            } catch (err) {
+              console.warn("Could not register service worker:", err);
+              return;
+            }
+          }
+          
+          if (registration) {
+            await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            console.log("Current subscription:", subscription ? "Found" : "None");
+            setState((prev) => ({
+              ...prev,
+              subscription,
+              isSubscribed: !!subscription,
+            }));
+          }
+        } catch (err) {
+          console.warn("Error checking subscription:", err);
+        }
+      };
+      
+      // Run after page load
+      if (document.readyState === "complete") {
+        checkServiceWorker();
+      } else {
+        window.addEventListener("load", checkServiceWorker);
+      }
     }
   }, []);
 
@@ -82,27 +115,53 @@ export function usePushNotifications() {
         // Ensure service worker is registered first
         let registration = await navigator.serviceWorker.getRegistration();
 
+        console.log("Current service worker registration:", registration);
+
         if (!registration) {
-          // Try to register the service worker (next-pwa generates this)
-          // Try both possible paths
-          try {
-            registration = await navigator.serviceWorker.register("/sw.js");
-          } catch {
-            // If sw.js doesn't exist, try the workbox-generated one
-            registration = await navigator.serviceWorker
-              .register("/sw.js", {
-                scope: "/",
-              })
-              .catch(() => {
-                throw new Error(
-                  "Service worker not available. Make sure you're running a production build (pnpm build && pnpm start). Push notifications don't work in development mode."
-                );
-              });
+          console.log("No service worker found, attempting to register...");
+          
+          // Wait a bit for next-pwa to inject the registration script
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          
+          // Check again after waiting
+          registration = await navigator.serviceWorker.getRegistration();
+          
+          if (!registration) {
+            // Try to register the service worker manually
+            // next-pwa generates sw.js in the public folder
+            const swPaths = ["/sw.js", "/sw.js?timestamp=" + Date.now()];
+            
+            let lastError: Error | null = null;
+            
+            for (const swPath of swPaths) {
+              try {
+                console.log(`Attempting to register service worker at ${swPath}`);
+                registration = await navigator.serviceWorker.register(swPath, {
+                  scope: "/",
+                });
+                console.log("Service worker registered successfully at:", swPath);
+                break;
+              } catch (err) {
+                console.warn(`Failed to register at ${swPath}:`, err);
+                lastError = err instanceof Error ? err : new Error(String(err));
+              }
+            }
+            
+            if (!registration) {
+              // Check if we're in production
+              const isProduction = process.env.NODE_ENV === "production";
+              const errorMsg = isProduction
+                ? `Service worker file not found. Check that next-pwa generated /sw.js in the public folder. Error: ${lastError?.message || "Unknown"}`
+                : "Service worker not available. Make sure you're running a production build (pnpm build && pnpm start). Push notifications don't work in development mode.";
+              throw new Error(errorMsg);
+            }
           }
         }
 
         // Wait for registration to be ready
+        console.log("Waiting for service worker to be ready...");
         await navigator.serviceWorker.ready;
+        console.log("Service worker is ready");
 
         // Get VAPID public key from server
         const response = await fetch("/api/push/vapid-public-key");
