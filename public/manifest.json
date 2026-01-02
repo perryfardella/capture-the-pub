@@ -1,6 +1,6 @@
 {
-  "name": "Capture the Pub",
-  "short_name": "Capture Pub",
+  "name": "Reuben's Bucks",
+  "short_name": "Reuben's Bucks",
   "description": "Mobile-first bucks party game - capture pubs, complete challenges, and compete in real-time",
   "start_url": "/",
   "display": "standalone",
