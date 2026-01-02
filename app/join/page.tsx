@@ -42,8 +42,9 @@ export default function JoinPage() {
     const normalizedNickname = nickname.trim();
     const normalizedLower = normalizedNickname.toLowerCase();
 
-    // First, check if a player with this nickname already exists (case-insensitive)
-    // We need to fetch all players and filter client-side since Supabase JS doesn't
+    // Check if a player with this nickname AND team already exists (case-insensitive)
+    // This allows the same nickname on different teams, but reuses players rejoining the same team
+    // We need to fetch players and filter client-side since Supabase JS doesn't
     // directly support case-insensitive filtering
     const { data: allPlayers, error: fetchError } = await supabase
       .from("players")
@@ -56,19 +57,22 @@ export default function JoinPage() {
       return;
     }
 
-    // Find existing player with case-insensitive nickname match
+    // Find existing player with case-insensitive nickname match AND matching team_id
     const existingPlayer = allPlayers?.find(
-      (p) => p.nickname.trim().toLowerCase() === normalizedLower
+      (p) =>
+        p.nickname.trim().toLowerCase() === normalizedLower &&
+        p.team_id === teamId
     );
 
     let player;
 
     if (existingPlayer) {
-      // Player with this nickname already exists - reuse them
+      // Player with this nickname on this team already exists - reuse them
       console.log("Found existing player:", existingPlayer);
       player = existingPlayer;
     } else {
-      // No existing player - create a new one
+      // No existing player on this team - create a new one
+      // This allows multiple players with the same name on different teams
       console.log("Creating new player...");
       const { data: newPlayer, error } = await supabase
         .from("players")
