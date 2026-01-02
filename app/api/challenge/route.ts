@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { sendPushNotificationToOthers } from "@/lib/utils/push-notifications";
 
 export async function POST(req: Request) {
   const supabase = createSupabaseServiceRoleClient();
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
 
   const { data: player } = await supabase
     .from("players")
-    .select("*")
+    .select("*, teams(*)")
     .eq("id", playerId)
     .single();
   if (!player) return new NextResponse("Player not found", { status: 404 });
@@ -70,6 +71,27 @@ export async function POST(req: Request) {
       .eq("id", pubId);
 
     if (lockError) return new NextResponse(lockError.message, { status: 500 });
+
+    // Send push notification for pub lock
+    const { data: pub } = await supabase
+      .from("pubs")
+      .select("name")
+      .eq("id", pubId)
+      .single();
+
+    const teamName = (player.teams as { name: string } | null)?.name || "A team";
+    sendPushNotificationToOthers(playerId, {
+      title: "Pub Locked! 🔒",
+      body: `${teamName} locked ${pub?.name || "a pub"} by completing the challenge!`,
+      tag: `challenge-lock-${pubId}`,
+      data: {
+        url: "/?tab=activity",
+        type: "challenge",
+        pubId,
+      },
+    }).catch((error) => {
+      console.error("Error sending push notification:", error);
+    });
   }
 
   // Handle global challenge → bonus point (with media_url)
@@ -101,6 +123,21 @@ export async function POST(req: Request) {
     if (insertError) {
       return new NextResponse(insertError.message, { status: 500 });
     }
+
+    // Send push notification for global challenge completion
+    const teamName = (player.teams as { name: string } | null)?.name || "A team";
+    sendPushNotificationToOthers(playerId, {
+      title: "Challenge Completed! ⭐",
+      body: `${teamName} completed a global challenge and earned a bonus point!`,
+      tag: `challenge-global-${challengeId}`,
+      data: {
+        url: "/?tab=scoreboard",
+        type: "bonus",
+        challengeId,
+      },
+    }).catch((error) => {
+      console.error("Error sending push notification:", error);
+    });
   }
 
   return NextResponse.json({ success: true });

@@ -1,0 +1,54 @@
+{
+  "name": "Capture the Pub",
+  "short_name": "Capture Pub",
+  "description": "Mobile-first bucks party game - capture pubs, complete challenges, and compete in real-time",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "manifest-icon-192.maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "manifest-icon-192.maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "manifest-icon-512.maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "manifest-icon-512.maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "View Scoreboard",
+      "short_name": "Scoreboard",
+      "description": "View current game scoreboard",
+      "url": "/?tab=scoreboard",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Activity Feed",
+      "short_name": "Feed",
+      "description": "View game activity feed",
+      "url": "/?tab=feed",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

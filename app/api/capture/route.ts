@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { sendPushNotificationToOthers } from "@/lib/utils/push-notifications";
 
 export async function POST(req: Request) {
   const supabase = createSupabaseServiceRoleClient();
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   // Fetch player & pub inside transaction-ish flow
   const { data: player } = await supabase
     .from("players")
-    .select("*")
+    .select("*, teams(*)")
     .eq("id", playerId)
     .single();
 
@@ -74,6 +75,22 @@ export async function POST(req: Request) {
   if (pubUpdateError) {
     return new NextResponse(pubUpdateError.message, { status: 500 });
   }
+
+  // Send push notification to all other players
+  // Don't await - send in background
+  const teamName = (player.teams as { name: string } | null)?.name || "A team";
+  sendPushNotificationToOthers(playerId, {
+    title: "Pub Captured! 🍺",
+    body: `${teamName} captured ${pub.name}`,
+    tag: `capture-${pubId}`,
+    data: {
+      url: "/?tab=activity",
+      type: "capture",
+      pubId,
+    },
+  }).catch((error) => {
+    console.error("Error sending push notification:", error);
+  });
 
   return NextResponse.json({ success: true });
 }

@@ -4,6 +4,7 @@ import { ActivityFeed } from "@/components/ActivityFeed";
 import { ChallengeDialog } from "@/components/ChallengeDialog";
 import { PubList } from "@/components/PubList";
 import { Scoreboard } from "@/components/Scoreboard";
+import { NotificationPrompt } from "@/components/NotificationPrompt";
 import { useGameState } from "@/lib/hooks/useGameState";
 import { useOffline } from "@/lib/hooks/useOffline";
 import { usePlayer } from "@/lib/hooks/usePlayer";
@@ -416,6 +417,9 @@ export default function Home() {
           ))}
         </div>
       </div>
+
+      {/* Notification Prompt */}
+      <NotificationPrompt />
     </div>
   );
 }
