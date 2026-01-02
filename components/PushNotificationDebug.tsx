@@ -12,14 +12,6 @@ export function PushNotificationDebug() {
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [testResult, setTestResult] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Only show in development or if query param is set
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (process.env.NODE_ENV === "production" && !params.has("debug")) {
-      return;
-    }
-  }, []);
 
   const fetchDebugInfo = async () => {
     try {
@@ -63,15 +55,15 @@ export function PushNotificationDebug() {
     }
   };
 
-  // Show debug panel if debug query param is present OR if no subscription exists
+  // Show debug panel ONLY if debug query param is present
   const [showDebug, setShowDebug] = useState(false);
   
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      setShowDebug(params.has("debug") || !isSubscribed);
+      setShowDebug(params.has("debug"));
     }
-  }, [isSubscribed]);
+  }, []);
 
   if (!showDebug) {
     return null;

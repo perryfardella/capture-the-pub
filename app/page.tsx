@@ -96,15 +96,7 @@ export default function Home() {
           acc[teamId].push(player);
           return acc;
         }, {} as Record<string, typeof data>);
-        console.log(
-          "Loaded players:",
-          data.length,
-          "Grouped by team:",
-          grouped
-        );
         setPlayersByTeam(grouped);
-      } else {
-        console.log("No players data returned");
       }
     }
 

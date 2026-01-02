@@ -7,6 +7,7 @@ interface PushSubscriptionState {
   isSupported: boolean;
   permission: NotificationPermission;
   isSubscribed: boolean;
+  isLoading: boolean;
 }
 
 export function usePushNotifications() {
@@ -15,6 +16,7 @@ export function usePushNotifications() {
     isSupported: false,
     permission: "default",
     isSubscribed: false,
+    isLoading: false,
   });
 
   // Check if push notifications are supported
@@ -39,12 +41,6 @@ export function usePushNotifications() {
       // Check service worker and subscription (following Next.js PWA guide)
       const checkServiceWorker = async () => {
         try {
-          // Check if running as PWA
-          const isPWA = window.matchMedia("(display-mode: standalone)").matches || 
-                       (window.navigator as any).standalone === true;
-          
-          console.log("Checking subscription in", isPWA ? "PWA" : "browser", "mode");
-          
           // Get existing registration or register
           let registration = await navigator.serviceWorker.getRegistration();
           
@@ -54,12 +50,10 @@ export function usePushNotifications() {
               scope: "/",
               updateViaCache: "none",
             });
-            console.log("Service worker registered for subscription check");
           }
           
           await navigator.serviceWorker.ready;
           const subscription = await registration.pushManager.getSubscription();
-          console.log("Current subscription:", subscription ? "Found" : "None", "in", isPWA ? "PWA" : "browser");
           setState((prev) => ({
             ...prev,
             subscription,
@@ -80,19 +74,15 @@ export function usePushNotifications() {
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
-    console.log("requestPermission() called");
     if (!state.isSupported) {
-      console.warn("Push notifications are not supported");
       return false;
     }
 
     // Check actual permission status (not just state) to handle cases where
     // permission was granted but state hasn't updated yet
     const currentPermission = Notification.permission;
-    console.log("Current Notification.permission:", currentPermission);
     
     if (currentPermission === "granted") {
-      console.log("Permission already granted");
       // Update state to reflect current permission
       setState((prev) => ({ ...prev, permission: currentPermission }));
       return true;
@@ -100,83 +90,62 @@ export function usePushNotifications() {
 
     // Permission must be requested from a user gesture (click handler)
     // This function should only be called from a user gesture handler
-    console.log("Requesting notification permission from browser...");
-    const permission = await Notification.requestPermission();
-    console.log("Browser returned permission:", permission);
-    setState((prev) => ({ ...prev, permission }));
-
-    if (permission === "granted") {
-      console.log("✅ Permission granted by user");
-    } else if (permission === "denied") {
-      console.warn("❌ Permission denied by user");
-    } else {
-      console.warn("⚠️ Permission default (user dismissed prompt)");
+    setState((prev) => ({ ...prev, isLoading: true }));
+    
+    try {
+      const permission = await Notification.requestPermission();
+      setState((prev) => ({ ...prev, permission, isLoading: false }));
+      return permission === "granted";
+    } catch (error) {
+      setState((prev) => ({ ...prev, isLoading: false }));
+      return false;
     }
-
-    return permission === "granted";
   }, [state.isSupported]);
 
   const subscribe = useCallback(
     async (playerId: string): Promise<boolean> => {
-      console.log("subscribe() called with playerId:", playerId);
-      console.log("Current state:", {
-        isSupported: state.isSupported,
-        permission: state.permission,
-        isSubscribed: state.isSubscribed,
-      });
-
       if (!state.isSupported) {
-        console.warn("Push notifications are not supported");
         return false;
       }
 
-      // Check actual permission status (not just state) in case it was updated elsewhere
-      const currentPermission = Notification.permission;
-      console.log("Current Notification.permission:", currentPermission);
-      
-      if (currentPermission !== "granted") {
-        // Update state to reflect current permission
-        setState((prev) => ({ ...prev, permission: currentPermission }));
-        
-        // Only request permission if it's still "default"
-        // If it was already requested in the component, it should be "granted" by now
-        if (currentPermission === "default") {
-          console.log("Permission not granted, requesting permission...");
-          const granted = await requestPermission();
-          console.log("Permission request result:", granted);
-          if (!granted) {
-            console.warn("Permission was denied or not granted");
-            return false;
-          }
-        } else {
-          // Permission was denied
-          console.warn("Permission was denied");
-          return false;
-        }
-        console.log("Permission granted, continuing with subscription...");
-      }
+      setState((prev) => ({ ...prev, isLoading: true }));
 
       try {
-        console.log("Step 1: Checking service worker registration...");
+        // Check actual permission status (not just state) in case it was updated elsewhere
+        const currentPermission = Notification.permission;
+        
+        if (currentPermission !== "granted") {
+          // Update state to reflect current permission
+          setState((prev) => ({ ...prev, permission: currentPermission }));
+          
+          // Only request permission if it's still "default"
+          // If it was already requested in the component, it should be "granted" by now
+          if (currentPermission === "default") {
+            const granted = await requestPermission();
+            if (!granted) {
+              setState((prev) => ({ ...prev, isLoading: false }));
+              return false;
+            }
+          } else {
+            // Permission was denied
+            setState((prev) => ({ ...prev, isLoading: false }));
+            return false;
+          }
+        }
+
         // Ensure service worker is registered first
         let registration = await navigator.serviceWorker.getRegistration();
 
-        console.log("Current service worker registration:", registration ? "Found" : "Not found");
-
         if (!registration) {
-          console.log("No service worker found, attempting to register...");
-          
           // Register service worker (following Next.js PWA guide)
-          console.log("Registering service worker at /sw.js...");
           try {
             registration = await navigator.serviceWorker.register("/sw.js", {
               scope: "/",
               updateViaCache: "none",
             });
-            console.log("Service worker registered successfully:", registration.scope);
           } catch (err) {
             const errorMsg = err instanceof Error ? err.message : "Unknown error";
-            console.error("Failed to register service worker:", err);
+            setState((prev) => ({ ...prev, isLoading: false }));
             throw new Error(
               `Failed to register service worker: ${errorMsg}. Make sure /sw.js exists in the public folder.`
             );
@@ -184,59 +153,46 @@ export function usePushNotifications() {
         }
 
         // Wait for registration to be ready
-        console.log("Step 2: Waiting for service worker to be ready...");
         const readyRegistration = await navigator.serviceWorker.ready;
-        console.log("Service worker is ready:", readyRegistration.active?.state);
-        
-        // Use the ready registration
         registration = readyRegistration;
 
         // Get VAPID public key from server
-        console.log("Step 3: Fetching VAPID public key...");
         const response = await fetch("/api/push/vapid-public-key");
         if (!response.ok) {
           const errorText = await response.text();
-          console.error("Failed to get VAPID key:", response.status, errorText);
+          setState((prev) => ({ ...prev, isLoading: false }));
           throw new Error(`Failed to get VAPID key: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
-        console.log("VAPID key response:", { hasPublicKey: !!data.publicKey });
         const { publicKey } = data;
 
         if (!publicKey) {
-          console.error("VAPID public key is missing from response:", data);
+          setState((prev) => ({ ...prev, isLoading: false }));
           throw new Error(
             "VAPID public key not available. Make sure NEXT_PUBLIC_VAPID_PUBLIC_KEY is set in your environment variables."
           );
         }
 
         // Convert VAPID key to Uint8Array
-        console.log("Step 4: Converting VAPID key...");
         let applicationServerKey;
         try {
           applicationServerKey = urlBase64ToUint8Array(publicKey);
-          console.log("VAPID key converted successfully");
         } catch (err) {
-          console.error("Failed to convert VAPID key:", err);
+          setState((prev) => ({ ...prev, isLoading: false }));
           throw new Error(`Failed to convert VAPID key: ${err instanceof Error ? err.message : "Unknown error"}`);
         }
 
         // Subscribe to push notifications
-        console.log("Step 5: Subscribing to push manager...");
         let subscription;
         try {
           subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey,
           });
-          console.log("Successfully subscribed to push manager:", {
-            endpoint: subscription.endpoint?.substring(0, 50) + "...",
-            hasKeys: !!subscription.getKey("p256dh") && !!subscription.getKey("auth"),
-          });
         } catch (err) {
-          console.error("Failed to subscribe to push manager:", err);
           const errorMsg = err instanceof Error ? err.message : "Unknown error";
+          setState((prev) => ({ ...prev, isLoading: false }));
           throw new Error(`Failed to subscribe to push notifications: ${errorMsg}`);
         }
 
@@ -250,12 +206,6 @@ export function usePushNotifications() {
         };
 
         // Send subscription to server
-        console.log("Sending subscription to server:", {
-          playerId,
-          endpoint: subscriptionJson.endpoint.substring(0, 50) + "...",
-          hasKeys: !!subscriptionJson.keys,
-        });
-
         const subscribeResponse = await fetch("/api/push/subscribe", {
           method: "POST",
           headers: {
@@ -269,26 +219,24 @@ export function usePushNotifications() {
 
         if (!subscribeResponse.ok) {
           const errorData = await subscribeResponse.json().catch(() => ({}));
-          console.error("Failed to save subscription:", errorData);
+          setState((prev) => ({ ...prev, isLoading: false }));
           throw new Error(
             errorData.error ||
               `Failed to save subscription: ${subscribeResponse.statusText}`
           );
         }
 
-        const result = await subscribeResponse.json();
-        console.log("Subscription saved successfully:", result);
-
         setState((prev) => ({
           ...prev,
           subscription,
           isSubscribed: true,
           permission: "granted",
+          isLoading: false,
         }));
 
         return true;
       } catch (error) {
-        console.error("Error subscribing to push notifications:", error);
+        setState((prev) => ({ ...prev, isLoading: false }));
         // Re-throw to allow component to handle it
         throw error;
       }

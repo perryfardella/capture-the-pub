@@ -7,8 +7,7 @@ export interface UploadProgress {
 }
 
 /**
- * Upload file to Supabase Storage with progress tracking
- * Uses resumable uploads for files larger than 6MB (Supabase recommendation)
+ * Upload file to Supabase Storage with real progress tracking using XMLHttpRequest
  */
 export async function uploadWithProgress(
   supabase: SupabaseClient,
@@ -17,100 +16,96 @@ export async function uploadWithProgress(
   file: File,
   onProgress?: (progress: UploadProgress) => void
 ): Promise<{ error: Error | null }> {
-  const SIX_MB = 6 * 1024 * 1024;
-
   try {
-    if (file.size > SIX_MB) {
-      // Use resumable upload for large files
-      return await uploadResumable(
-        supabase,
-        bucket,
-        path,
-        file,
-        onProgress
-      );
-    } else {
-      // Use standard upload for smaller files
-      return await uploadStandard(
-        supabase,
-        bucket,
-        path,
-        file,
-        onProgress
-      );
+    // Get the storage URL and access token from Supabase
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    // Get the Supabase project URL
+    const supabaseUrl = supabase.supabaseUrl;
+    
+    // For public buckets, use the anon key (available as NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    // For authenticated uploads, prefer the session token
+    const anonKey = typeof window !== "undefined" 
+      ? (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string)
+      : null;
+    
+    const authToken = session?.access_token || anonKey;
+    
+    if (!authToken) {
+      return { error: new Error("No authentication available") };
     }
+
+    const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${path}`;
+
+    // Upload using XMLHttpRequest for real progress tracking
+    return new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+
+      // Track upload progress
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable && onProgress) {
+          const percentage = Math.round((e.loaded / e.total) * 100);
+          onProgress({
+            loaded: e.loaded,
+            total: e.total,
+            percentage,
+          });
+        }
+      });
+
+      // Handle completion
+      xhr.addEventListener("load", () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          if (onProgress) {
+            onProgress({
+              loaded: file.size,
+              total: file.size,
+              percentage: 100,
+            });
+          }
+          resolve({ error: null });
+        } else {
+          try {
+            const errorData = JSON.parse(xhr.responseText);
+            resolve({
+              error: new Error(errorData.error || errorData.message || `Upload failed: ${xhr.statusText}`),
+            });
+          } catch {
+            resolve({
+              error: new Error(`Upload failed: ${xhr.statusText} (${xhr.status})`),
+            });
+          }
+        }
+      });
+
+      // Handle errors
+      xhr.addEventListener("error", () => {
+        resolve({ error: new Error("Network error during upload") });
+      });
+
+      xhr.addEventListener("abort", () => {
+        resolve({ error: new Error("Upload aborted") });
+      });
+
+      // Start the upload
+      xhr.open("POST", uploadUrl, true);
+      xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
+      if (anonKey) {
+        xhr.setRequestHeader("apikey", anonKey);
+      }
+
+      // Create FormData to match Supabase's expected format
+      const formData = new FormData();
+      formData.append("file", file);
+
+      xhr.send(formData);
+    });
   } catch (error) {
     return {
       error: error instanceof Error ? error : new Error("Upload failed"),
     };
   }
-}
-
-/**
- * Standard upload with progress simulation
- */
-async function uploadStandard(
-  supabase: SupabaseClient,
-  bucket: string,
-  path: string,
-  file: File,
-  onProgress?: (progress: UploadProgress) => void
-): Promise<{ error: Error | null }> {
-  // Simulate progress for standard uploads
-  if (onProgress) {
-    onProgress({ loaded: 0, total: file.size, percentage: 0 });
-    // Simulate progress updates
-    const interval = setInterval(() => {
-      onProgress({ loaded: file.size * 0.5, total: file.size, percentage: 50 });
-    }, 100);
-    
-    setTimeout(() => {
-      clearInterval(interval);
-    }, 500);
-  }
-
-  const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    cacheControl: "3600",
-    upsert: false,
-  });
-
-  if (onProgress && !error) {
-    onProgress({ loaded: file.size, total: file.size, percentage: 100 });
-  }
-
-  return { error };
-}
-
-/**
- * Resumable upload for large files
- * Note: Supabase resumable uploads require additional setup
- * For now, we'll use standard upload with chunking simulation
- */
-async function uploadResumable(
-  supabase: SupabaseClient,
-  bucket: string,
-  path: string,
-  file: File,
-  onProgress?: (progress: UploadProgress) => void
-): Promise<{ error: Error | null }> {
-  // For files > 6MB, Supabase recommends resumable uploads
-  // However, the JS client doesn't have built-in resumable uploads yet
-  // So we'll use standard upload but with better error handling
-  // In production, consider using Supabase's resumable upload API directly
-
-  if (onProgress) {
-    onProgress({ loaded: 0, total: file.size, percentage: 0 });
-  }
-
-  const { error } = await supabase.storage.from(bucket).upload(path, file, {
-    cacheControl: "3600",
-    upsert: false,
-  });
-
-  if (onProgress && !error) {
-    onProgress({ loaded: file.size, total: file.size, percentage: 100 });
-  }
-
-  return { error };
 }
 

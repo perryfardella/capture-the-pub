@@ -76,16 +76,48 @@ export function useMediaUpload(options: UseMediaUploadOptions = {}) {
         }
       }
 
-      // Compress media file with consistent settings
-      const compressedFile = await compressMedia(file, {
-        maxImageSizeMB: UPLOAD_CONFIG.maxImageSizeMB,
-        maxVideoSizeMB: UPLOAD_CONFIG.maxVideoSizeMB,
-        imageQuality: UPLOAD_CONFIG.imageQuality,
-        maxImageWidth: UPLOAD_CONFIG.maxImageWidth,
-        maxImageHeight: UPLOAD_CONFIG.maxImageHeight,
-      });
+      // Compression phase: 0-30% of progress
+      // Simulate incremental compression progress
+      const compressionSteps = [5, 15, 25, 30];
+      let stepIndex = 0;
+      let compressionProgressInterval: NodeJS.Timeout | null = null;
+      
+      compressionProgressInterval = setInterval(() => {
+        if (stepIndex < compressionSteps.length) {
+          setUploadProgress(compressionSteps[stepIndex]);
+          options.onProgress?.(compressionSteps[stepIndex]);
+          stepIndex++;
+        } else if (compressionProgressInterval) {
+          clearInterval(compressionProgressInterval);
+          compressionProgressInterval = null;
+        }
+      }, 150);
 
-      // Upload directly to Supabase Storage with progress tracking
+      // Compress media file with consistent settings
+      let compressedFile: File;
+      try {
+        compressedFile = await compressMedia(file, {
+          maxImageSizeMB: UPLOAD_CONFIG.maxImageSizeMB,
+          maxVideoSizeMB: UPLOAD_CONFIG.maxVideoSizeMB,
+          imageQuality: UPLOAD_CONFIG.imageQuality,
+          maxImageWidth: UPLOAD_CONFIG.maxImageWidth,
+          maxImageHeight: UPLOAD_CONFIG.maxImageHeight,
+        });
+      } catch (err) {
+        if (compressionProgressInterval) {
+          clearInterval(compressionProgressInterval);
+        }
+        throw err;
+      }
+
+      // Clear interval and set to 30% (compression complete)
+      if (compressionProgressInterval) {
+        clearInterval(compressionProgressInterval);
+      }
+      setUploadProgress(30);
+      options.onProgress?.(30);
+
+      // Upload phase: 30-100% of progress
       const supabase = createSupabaseBrowserClient();
       const path = `${storagePath}/${Date.now()}-${compressedFile.name}`;
 
@@ -95,9 +127,10 @@ export function useMediaUpload(options: UseMediaUploadOptions = {}) {
         path,
         compressedFile,
         (progress) => {
-          const percentage = progress.percentage;
-          setUploadProgress(percentage);
-          options.onProgress?.(percentage);
+          // Map upload progress (0-100) to overall progress (30-100)
+          const overallProgress = Math.round(30 + (progress.percentage * 0.7));
+          setUploadProgress(overallProgress);
+          options.onProgress?.(overallProgress);
         }
       );
 

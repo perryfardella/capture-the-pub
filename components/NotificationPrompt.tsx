@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 
 export function NotificationPrompt() {
-  const { isSupported, permission, isSubscribed, subscribe, requestPermission } =
+  const { isSupported, permission, isSubscribed, subscribe, requestPermission, isLoading } =
     usePushNotifications();
   const { player } = usePlayer();
   const [dismissed, setDismissed] = useState(false);
@@ -20,28 +20,6 @@ export function NotificationPrompt() {
     }
   }, []);
 
-  // Debug logging
-  useEffect(() => {
-    console.log("NotificationPrompt state:", {
-      isSupported,
-      isSubscribed,
-      permission,
-      dismissed,
-      hasPlayer: !!player?.id,
-      willShow: !(!isSupported || isSubscribed || permission === "denied" || dismissed),
-    });
-  }, [isSupported, isSubscribed, permission, dismissed, player]);
-
-  // Debug logging
-  useEffect(() => {
-    console.log("NotificationPrompt state:", {
-      isSupported,
-      isSubscribed,
-      permission,
-      dismissed,
-      hasPlayer: !!player?.id,
-    });
-  }, [isSupported, isSubscribed, permission, dismissed, player]);
 
   // Don't show if:
   // - Not supported
@@ -59,7 +37,6 @@ export function NotificationPrompt() {
 
   const handleSubscribe = async () => {
     if (!player?.id) {
-      console.warn("No player ID available");
       alert("Please join the game first to enable notifications");
       return;
     }
@@ -73,12 +50,9 @@ export function NotificationPrompt() {
     // IMPORTANT: Request permission FIRST, directly from user gesture
     // This must happen synchronously from the click handler, before any async operations
     try {
-      console.log("Requesting notification permission from user gesture...");
-      
       // Use the hook's requestPermission function to keep state in sync
       // This calls Notification.requestPermission() internally
       const granted = await requestPermission();
-      console.log("Permission request result:", granted);
       
       if (!granted) {
         const currentPermission = Notification.permission;
@@ -91,23 +65,16 @@ export function NotificationPrompt() {
       }
 
       // Now proceed with subscription after permission is granted
-      console.log("Permission granted, starting subscription process...");
       const success = await subscribe(player.id);
-      console.log("Subscription result:", success);
       if (success) {
         setDismissed(true);
         localStorage.setItem("notification-prompt-dismissed", "true");
-        console.log("Successfully subscribed to notifications");
       } else {
-        console.error("Failed to subscribe to notifications - subscribe returned false");
-        alert("Failed to enable notifications. Please check the console for details.");
+        alert("Failed to enable notifications. Please try again.");
       }
     } catch (error) {
-      console.error("Error enabling notifications:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      const errorStack = error instanceof Error ? error.stack : "";
-      console.error("Full error details:", { errorMessage, errorStack, error });
-      alert(`Error enabling notifications: ${errorMessage}\n\nCheck the browser console for more details.`);
+      alert(`Error enabling notifications: ${errorMessage}`);
     }
   };
 
@@ -130,14 +97,16 @@ export function NotificationPrompt() {
               size="sm"
               onClick={handleSubscribe}
               className="text-xs h-8"
+              disabled={isLoading}
             >
-              Enable
+              {isLoading ? "Enabling..." : "Enable"}
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={handleDismiss}
               className="text-xs h-8"
+              disabled={isLoading}
             >
               Maybe Later
             </Button>

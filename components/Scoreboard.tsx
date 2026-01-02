@@ -28,12 +28,6 @@ export function Scoreboard({
   
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
 
-  // Debug: Log playersByTeam when it changes
-  useEffect(() => {
-    console.log("Scoreboard playersByTeam:", playersByTeam);
-    console.log("Scoreboard teams:", teams.map(t => ({ id: t.id, name: t.name })));
-  }, [playersByTeam, teams]);
-
   const toggleTeam = (teamId: string) => {
     setExpandedTeams((prev) => {
       const next = new Set(prev);

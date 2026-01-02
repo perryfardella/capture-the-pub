@@ -141,9 +141,7 @@ export function useRealtimeGame() {
         }
       )
       .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("Successfully subscribed to pubs changes");
-        } else if (status === "CHANNEL_ERROR") {
+        if (status === "CHANNEL_ERROR") {
           console.error("Error subscribing to pubs changes");
         }
       });
@@ -222,9 +220,7 @@ export function useRealtimeGame() {
         }
       )
       .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("Successfully subscribed to captures changes");
-        } else if (status === "CHANNEL_ERROR") {
+        if (status === "CHANNEL_ERROR") {
           console.error("Error subscribing to captures changes");
         }
       });
@@ -321,9 +317,7 @@ export function useRealtimeGame() {
         }
       )
       .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          console.log("Successfully subscribed to bonus_points changes");
-        } else if (status === "CHANNEL_ERROR") {
+        if (status === "CHANNEL_ERROR") {
           console.error("Error subscribing to bonus_points changes");
         }
       });
