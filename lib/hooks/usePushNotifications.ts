@@ -110,29 +110,29 @@ export function usePushNotifications() {
 
       setState((prev) => ({ ...prev, isLoading: true }));
 
-      try {
-        // Check actual permission status (not just state) in case it was updated elsewhere
-        const currentPermission = Notification.permission;
+      // Check actual permission status (not just state) in case it was updated elsewhere
+      const currentPermission = Notification.permission;
+      
+      if (currentPermission !== "granted") {
+        // Update state to reflect current permission
+        setState((prev) => ({ ...prev, permission: currentPermission }));
         
-        if (currentPermission !== "granted") {
-          // Update state to reflect current permission
-          setState((prev) => ({ ...prev, permission: currentPermission }));
-          
-          // Only request permission if it's still "default"
-          // If it was already requested in the component, it should be "granted" by now
-          if (currentPermission === "default") {
-            const granted = await requestPermission();
-            if (!granted) {
-              setState((prev) => ({ ...prev, isLoading: false }));
-              return false;
-            }
-          } else {
-            // Permission was denied
+        // Only request permission if it's still "default"
+        // If it was already requested in the component, it should be "granted" by now
+        if (currentPermission === "default") {
+          const granted = await requestPermission();
+          if (!granted) {
             setState((prev) => ({ ...prev, isLoading: false }));
             return false;
           }
+        } else {
+          // Permission was denied
+          setState((prev) => ({ ...prev, isLoading: false }));
+          return false;
         }
+      }
 
+      try {
         // Ensure service worker is registered first
         let registration = await navigator.serviceWorker.getRegistration();
 
@@ -250,6 +250,15 @@ export function usePushNotifications() {
     }
 
     try {
+      // Convert subscription to JSON format before sending
+      const subscriptionJson = {
+        endpoint: state.subscription.endpoint,
+        keys: {
+          p256dh: arrayBufferToBase64(state.subscription.getKey("p256dh")!),
+          auth: arrayBufferToBase64(state.subscription.getKey("auth")!),
+        },
+      };
+
       await state.subscription.unsubscribe();
 
       // Notify server to remove subscription
@@ -259,7 +268,7 @@ export function usePushNotifications() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          subscription: state.subscription,
+          subscription: subscriptionJson,
         }),
       });
 

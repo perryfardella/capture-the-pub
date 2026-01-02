@@ -10,7 +10,9 @@ import { useEffect } from "react";
 export function ServiceWorkerRegistration() {
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (process.env.NODE_ENV === "development") return;
+    // Note: Service worker registration also happens in usePushNotifications hook
+    // This component ensures it's registered for PWA functionality
+    // In development, the hook will handle registration when needed
 
     if ("serviceWorker" in navigator) {
       // Check if running as PWA
