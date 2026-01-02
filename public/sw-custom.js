@@ -7,8 +7,8 @@ self.addEventListener("push", function (event) {
   const title = data.title || "Capture the Pub";
   const options = {
     body: data.body || "New game update",
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
+    icon: "/manifest-icon-192.maskable.png",
+    badge: "/manifest-icon-192.maskable.png",
     vibrate: [200, 100, 200],
     tag: data.tag || "game-update",
     data: data.data || {},

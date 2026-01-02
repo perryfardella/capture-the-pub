@@ -5,6 +5,7 @@ import { ChallengeDialog } from "@/components/ChallengeDialog";
 import { PubList } from "@/components/PubList";
 import { Scoreboard } from "@/components/Scoreboard";
 import { NotificationPrompt } from "@/components/NotificationPrompt";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { useGameState } from "@/lib/hooks/useGameState";
 import { useOffline } from "@/lib/hooks/useOffline";
 import { usePlayer } from "@/lib/hooks/usePlayer";
@@ -420,6 +421,9 @@ export default function Home() {
 
       {/* Notification Prompt */}
       <NotificationPrompt />
+
+      {/* Install Prompt */}
+      <InstallPrompt />
     </div>
   );
 }
