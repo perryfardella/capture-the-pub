@@ -39,15 +39,27 @@ export function usePushNotifications() {
       // Check service worker and subscription (following Next.js PWA guide)
       const checkServiceWorker = async () => {
         try {
-          // Register service worker
-          const registration = await navigator.serviceWorker.register("/sw.js", {
-            scope: "/",
-            updateViaCache: "none",
-          });
+          // Check if running as PWA
+          const isPWA = window.matchMedia("(display-mode: standalone)").matches || 
+                       (window.navigator as any).standalone === true;
+          
+          console.log("Checking subscription in", isPWA ? "PWA" : "browser", "mode");
+          
+          // Get existing registration or register
+          let registration = await navigator.serviceWorker.getRegistration();
+          
+          if (!registration) {
+            // Register service worker
+            registration = await navigator.serviceWorker.register("/sw.js", {
+              scope: "/",
+              updateViaCache: "none",
+            });
+            console.log("Service worker registered for subscription check");
+          }
           
           await navigator.serviceWorker.ready;
           const subscription = await registration.pushManager.getSubscription();
-          console.log("Current subscription:", subscription ? "Found" : "None");
+          console.log("Current subscription:", subscription ? "Found" : "None", "in", isPWA ? "PWA" : "browser");
           setState((prev) => ({
             ...prev,
             subscription,

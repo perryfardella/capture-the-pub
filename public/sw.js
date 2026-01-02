@@ -48,7 +48,10 @@ self.addEventListener("push", function (event) {
             vibrate: [200, 100, 200],
             tag: data.tag || "game-update",
             data: data.data || {},
-            requireInteraction: false,
+            requireInteraction: true, // Keep notification visible until user interacts
+            silent: false, // Ensure sound/vibration works
+            timestamp: Date.now(),
+            renotify: true, // Show notification even if one with same tag exists
             actions: data.actions || [],
           };
 
@@ -62,6 +65,8 @@ self.addEventListener("push", function (event) {
             await self.registration.showNotification("Reuben's Bucks", {
               body: "New game update",
               icon: "/manifest-icon-192.maskable.png",
+              requireInteraction: true,
+              silent: false,
             });
             console.log("Default notification displayed");
           } catch (notifErr) {
@@ -73,6 +78,8 @@ self.addEventListener("push", function (event) {
         self.registration.showNotification("Reuben's Bucks", {
           body: "New game update",
           icon: "/manifest-icon-192.maskable.png",
+          requireInteraction: true,
+          silent: false,
         }).then(() => {
           console.log("No-data notification displayed");
         }).catch((err) => {
