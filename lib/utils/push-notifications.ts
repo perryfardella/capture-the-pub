@@ -169,22 +169,47 @@ async function sendPushNotification(
   }
 
   try {
-    const sub = subscription as webpush.PushSubscription;
-    console.log("Sending push notification to:", sub.endpoint?.substring(0, 50) + "...");
-    console.log("Subscription format:", {
-      endpoint: sub.endpoint,
-      hasKeys: !!sub.keys,
-      keysType: typeof sub.keys,
-      keys: sub.keys ? Object.keys(sub.keys) : null,
-    });
-    console.log("Payload:", payload);
-    console.log("Payload JSON:", JSON.stringify(payload));
+    // Ensure subscription is in the correct format for web-push
+    // The subscription from DB should have: { endpoint, keys: { p256dh, auth } }
+    const sub = subscription as {
+      endpoint?: string;
+      keys?: {
+        p256dh?: string;
+        auth?: string;
+      };
+    };
 
-    // Pass the payload object directly - web-push will handle JSON serialization
-    const result = await webpush.sendNotification(sub, JSON.stringify(payload), {
+    if (!sub.endpoint) {
+      console.error("Subscription missing endpoint:", subscription);
+      return false;
+    }
+
+    if (!sub.keys || !sub.keys.p256dh || !sub.keys.auth) {
+      console.error("Subscription missing keys:", {
+        hasKeys: !!sub.keys,
+        hasP256dh: !!sub.keys?.p256dh,
+        hasAuth: !!sub.keys?.auth,
+      });
+      return false;
+    }
+
+    // Convert to web-push format
+    const webPushSubscription: webpush.PushSubscription = {
+      endpoint: sub.endpoint,
+      keys: {
+        p256dh: sub.keys.p256dh,
+        auth: sub.keys.auth,
+      },
+    };
+
+    console.log("Sending push notification to:", webPushSubscription.endpoint?.substring(0, 50) + "...");
+    console.log("Payload:", payload);
+
+    // web-push expects the payload as a string (JSON stringified)
+    const result = await webpush.sendNotification(webPushSubscription, JSON.stringify(payload), {
       TTL: 86400, // 24 hours
     });
-    console.log("Push notification sent successfully, result:", result);
+    console.log("Push notification sent successfully");
     return true;
   } catch (error) {
     // Handle expired/invalid subscriptions

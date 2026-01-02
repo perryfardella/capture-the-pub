@@ -71,18 +71,23 @@ export function NotificationPrompt() {
     }
 
     try {
+      console.log("Starting subscription process...");
       const success = await subscribe(player.id);
+      console.log("Subscription result:", success);
       if (success) {
         setDismissed(true);
         localStorage.setItem("notification-prompt-dismissed", "true");
+        console.log("Successfully subscribed to notifications");
       } else {
-        console.error("Failed to subscribe to notifications");
+        console.error("Failed to subscribe to notifications - subscribe returned false");
         alert("Failed to enable notifications. Please check the console for details.");
       }
     } catch (error) {
       console.error("Error enabling notifications:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      alert(`Error enabling notifications: ${errorMessage}\n\nNote: Push notifications only work in production builds (not in dev mode).`);
+      const errorStack = error instanceof Error ? error.stack : "";
+      console.error("Full error details:", { errorMessage, errorStack, error });
+      alert(`Error enabling notifications: ${errorMessage}\n\nCheck the browser console for more details.`);
     }
   };
 

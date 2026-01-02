@@ -98,66 +98,88 @@ export function usePushNotifications() {
       }
 
       try {
+        console.log("Step 1: Checking service worker registration...");
         // Ensure service worker is registered first
         let registration = await navigator.serviceWorker.getRegistration();
 
-        console.log("Current service worker registration:", registration);
+        console.log("Current service worker registration:", registration ? "Found" : "Not found");
 
-          if (!registration) {
-            console.log("No service worker found, attempting to register...");
-            
-            // Wait a bit for next-pwa to inject the registration script
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            
-            // Check again after waiting
-            registration = await navigator.serviceWorker.getRegistration();
-            
-            if (!registration) {
-              // Register service worker (following Next.js PWA guide)
-              console.log("Registering service worker...");
-              try {
-                registration = await navigator.serviceWorker.register("/sw.js", {
-                  scope: "/",
-                  updateViaCache: "none",
-                });
-                console.log("Service worker registered successfully");
-              } catch (err) {
-                const errorMsg = err instanceof Error ? err.message : "Unknown error";
-                throw new Error(
-                  `Failed to register service worker: ${errorMsg}. Make sure /sw.js exists in the public folder.`
-                );
-              }
-            }
+        if (!registration) {
+          console.log("No service worker found, attempting to register...");
+          
+          // Register service worker (following Next.js PWA guide)
+          console.log("Registering service worker at /sw.js...");
+          try {
+            registration = await navigator.serviceWorker.register("/sw.js", {
+              scope: "/",
+              updateViaCache: "none",
+            });
+            console.log("Service worker registered successfully:", registration.scope);
+          } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : "Unknown error";
+            console.error("Failed to register service worker:", err);
+            throw new Error(
+              `Failed to register service worker: ${errorMsg}. Make sure /sw.js exists in the public folder.`
+            );
           }
+        }
 
         // Wait for registration to be ready
-        console.log("Waiting for service worker to be ready...");
-        await navigator.serviceWorker.ready;
-        console.log("Service worker is ready");
+        console.log("Step 2: Waiting for service worker to be ready...");
+        const readyRegistration = await navigator.serviceWorker.ready;
+        console.log("Service worker is ready:", readyRegistration.active?.state);
+        
+        // Use the ready registration
+        registration = readyRegistration;
 
         // Get VAPID public key from server
+        console.log("Step 3: Fetching VAPID public key...");
         const response = await fetch("/api/push/vapid-public-key");
         if (!response.ok) {
-          throw new Error(`Failed to get VAPID key: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error("Failed to get VAPID key:", response.status, errorText);
+          throw new Error(`Failed to get VAPID key: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
+        console.log("VAPID key response:", { hasPublicKey: !!data.publicKey });
         const { publicKey } = data;
 
         if (!publicKey) {
+          console.error("VAPID public key is missing from response:", data);
           throw new Error(
             "VAPID public key not available. Make sure NEXT_PUBLIC_VAPID_PUBLIC_KEY is set in your environment variables."
           );
         }
 
         // Convert VAPID key to Uint8Array
-        const applicationServerKey = urlBase64ToUint8Array(publicKey);
+        console.log("Step 4: Converting VAPID key...");
+        let applicationServerKey;
+        try {
+          applicationServerKey = urlBase64ToUint8Array(publicKey);
+          console.log("VAPID key converted successfully");
+        } catch (err) {
+          console.error("Failed to convert VAPID key:", err);
+          throw new Error(`Failed to convert VAPID key: ${err instanceof Error ? err.message : "Unknown error"}`);
+        }
 
         // Subscribe to push notifications
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey,
-        });
+        console.log("Step 5: Subscribing to push manager...");
+        let subscription;
+        try {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey,
+          });
+          console.log("Successfully subscribed to push manager:", {
+            endpoint: subscription.endpoint?.substring(0, 50) + "...",
+            hasKeys: !!subscription.getKey("p256dh") && !!subscription.getKey("auth"),
+          });
+        } catch (err) {
+          console.error("Failed to subscribe to push manager:", err);
+          const errorMsg = err instanceof Error ? err.message : "Unknown error";
+          throw new Error(`Failed to subscribe to push notifications: ${errorMsg}`);
+        }
 
         // Convert subscription to JSON-serializable format
         const subscriptionJson = {
