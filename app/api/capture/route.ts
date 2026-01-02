@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { sendPushNotificationToOthers } from "@/lib/utils/push-notifications";
+import { waitUntil } from "@vercel/functions";
 
 export async function POST(req: Request) {
   const supabase = createSupabaseServiceRoleClient();
@@ -77,20 +78,22 @@ export async function POST(req: Request) {
   }
 
   // Send push notification to all other players
-  // Don't await - send in background
+  // Use waitUntil to ensure the notification is sent before the function terminates
   const teamName = (player.teams as { name: string } | null)?.name || "A team";
-  sendPushNotificationToOthers(playerId, {
-    title: "Pub Captured! 🍺",
-    body: `${teamName} captured ${pub.name}`,
-    tag: `capture-${pubId}`,
-    data: {
-      url: "/?tab=activity",
-      type: "capture",
-      pubId,
-    },
-  }).catch((error) => {
-    console.error("Error sending push notification:", error);
-  });
+  waitUntil(
+    sendPushNotificationToOthers(playerId, {
+      title: "Pub Captured! 🍺",
+      body: `${teamName} captured ${pub.name}`,
+      tag: `capture-${pubId}`,
+      data: {
+        url: "/?tab=activity",
+        type: "capture",
+        pubId,
+      },
+    }).catch((error) => {
+      console.error("Error sending push notification:", error);
+    })
+  );
 
   return NextResponse.json({ success: true });
 }

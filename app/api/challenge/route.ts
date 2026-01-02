@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
 import { sendPushNotificationToOthers } from "@/lib/utils/push-notifications";
+import { waitUntil } from "@vercel/functions";
 
 export async function POST(req: Request) {
   const supabase = createSupabaseServiceRoleClient();
@@ -80,18 +81,20 @@ export async function POST(req: Request) {
       .single();
 
     const teamName = (player.teams as { name: string } | null)?.name || "A team";
-    sendPushNotificationToOthers(playerId, {
-      title: "Pub Locked! 🔒",
-      body: `${teamName} locked ${pub?.name || "a pub"} by completing the challenge!`,
-      tag: `challenge-lock-${pubId}`,
-      data: {
-        url: "/?tab=activity",
-        type: "challenge",
-        pubId,
-      },
-    }).catch((error) => {
-      console.error("Error sending push notification:", error);
-    });
+    waitUntil(
+      sendPushNotificationToOthers(playerId, {
+        title: "Pub Locked! 🔒",
+        body: `${teamName} locked ${pub?.name || "a pub"} by completing the challenge!`,
+        tag: `challenge-lock-${pubId}`,
+        data: {
+          url: "/?tab=activity",
+          type: "challenge",
+          pubId,
+        },
+      }).catch((error) => {
+        console.error("Error sending push notification:", error);
+      })
+    );
   }
 
   // Handle global challenge → bonus point (with media_url)
@@ -126,18 +129,20 @@ export async function POST(req: Request) {
 
     // Send push notification for global challenge completion
     const teamName = (player.teams as { name: string } | null)?.name || "A team";
-    sendPushNotificationToOthers(playerId, {
-      title: "Challenge Completed! ⭐",
-      body: `${teamName} completed a global challenge and earned a bonus point!`,
-      tag: `challenge-global-${challengeId}`,
-      data: {
-        url: "/?tab=scoreboard",
-        type: "bonus",
-        challengeId,
-      },
-    }).catch((error) => {
-      console.error("Error sending push notification:", error);
-    });
+    waitUntil(
+      sendPushNotificationToOthers(playerId, {
+        title: "Challenge Completed! ⭐",
+        body: `${teamName} completed a global challenge and earned a bonus point!`,
+        tag: `challenge-global-${challengeId}`,
+        data: {
+          url: "/?tab=scoreboard",
+          type: "bonus",
+          challengeId,
+        },
+      }).catch((error) => {
+        console.error("Error sending push notification:", error);
+      })
+    );
   }
 
   return NextResponse.json({ success: true });
