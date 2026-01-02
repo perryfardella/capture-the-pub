@@ -31,16 +31,20 @@ export function CaptureDialog({
   const [file, setFile] = useState<File | null>(null);
   const [open, setOpen] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     uploadMedia,
-    uploading: loading,
+    uploading,
     uploadProgress,
     error,
     reset: resetUpload,
     setError: setUploadError,
   } = useMediaUpload();
+
+  // Combined loading state - true if we're submitting or uploading
+  const loading = isSubmitting || uploading;
 
   function handleOpenChange(newOpen: boolean) {
     setOpen(newOpen);
@@ -49,6 +53,7 @@ export function CaptureDialog({
       // Reset form when dialog closes
       setFile(null);
       setSuccess(false);
+      setIsSubmitting(false);
       resetUpload();
     }
   }
@@ -61,9 +66,12 @@ export function CaptureDialog({
   }
 
   async function submit(selectedFile: File) {
+    setIsSubmitting(true);
+    
     const playerId = localStorage.getItem("player_id");
     if (!playerId) {
       setUploadError("No player session found. Please rejoin the game.");
+      setIsSubmitting(false);
       return;
     }
 
@@ -73,6 +81,7 @@ export function CaptureDialog({
     if (result.error || !result.mediaUrl) {
       // Error is already set by the hook
       vibrate([50, 50, 50]); // Error vibration pattern
+      setIsSubmitting(false);
       return;
     }
 
@@ -91,11 +100,13 @@ export function CaptureDialog({
       const errorText = await res.text();
       setUploadError(errorText);
       vibrate([50, 50, 50]); // Error vibration pattern
+      setIsSubmitting(false);
       return;
     }
 
     // Success! Show celebration
     vibrate([50, 100, 50]); // Success vibration pattern
+    setIsSubmitting(false);
     setSuccess(true);
 
     // Auto-close after celebration

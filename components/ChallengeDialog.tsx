@@ -51,15 +51,19 @@ export function ChallengeDialog({
     null
   );
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     uploadMedia,
-    uploading: loading,
+    uploading,
     uploadProgress,
     error,
     reset: resetUpload,
     setError: setUploadError,
   } = useMediaUpload();
+
+  // Combined loading state
+  const loading = isSubmitting || uploading;
 
   // Haptic feedback helper
   function vibrate(pattern: number | number[] = 50) {
@@ -76,6 +80,7 @@ export function ChallengeDialog({
       setFileInputKey((prev) => prev + 1);
       resetUpload();
       setShowSuccess(false);
+      setIsSubmitting(false);
       // Reset to start step for pub challenges
       if (challengeType === "pub") {
         setStep("start");
@@ -127,6 +132,8 @@ export function ChallengeDialog({
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
       let mediaUrl: string | null = null;
 
@@ -139,6 +146,7 @@ export function ChallengeDialog({
 
         if (result.error) {
           vibrate([50, 50, 50]);
+          setIsSubmitting(false);
           return;
         }
 
@@ -165,11 +173,13 @@ export function ChallengeDialog({
         const errorText = await res.text();
         setUploadError(errorText);
         vibrate([50, 50, 50]);
+        setIsSubmitting(false);
         return;
       }
 
       // Success!
       vibrate([50, 100, 50]);
+      setIsSubmitting(false);
 
       // Success - clear file and update state
       setFile(null);
@@ -197,6 +207,7 @@ export function ChallengeDialog({
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed");
       vibrate([50, 50, 50]);
+      setIsSubmitting(false);
     }
   }
 

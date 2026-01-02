@@ -91,7 +91,7 @@ export function InstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4">
+    <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 w-full max-w-md px-4">
       <div className="bg-background border border-border rounded-lg shadow-lg p-4 flex items-start gap-3">
         <div className="flex-1">
           <h3 className="font-semibold text-sm mb-1 flex items-center gap-2">
