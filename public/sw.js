@@ -19,10 +19,25 @@ self.addEventListener("push", function (event) {
   console.log("Has data:", !!event.data);
 
   const promiseChain = event.data
-    ? event.data
-        .json()
-        .then((data) => {
-          console.log("Parsed push data:", data);
+    ? (async () => {
+        try {
+          // Get the data as text first, then parse JSON
+          const text = await event.data.text();
+          console.log("Push data as text:", text);
+          
+          let data;
+          try {
+            data = JSON.parse(text);
+            console.log("Parsed push data:", data);
+          } catch (parseErr) {
+            console.error("Failed to parse JSON, using text as body:", parseErr);
+            // If it's not JSON, treat the entire text as the notification body
+            data = {
+              title: "Reuben's Bucks",
+              body: text,
+            };
+          }
+          
           const title = data.title || "Reuben's Bucks";
           const body = data.body || "New game update";
 
@@ -38,43 +53,22 @@ self.addEventListener("push", function (event) {
           };
 
           console.log("Showing notification:", title, options);
-          return self.registration.showNotification(title, options)
-            .then(() => {
-              console.log("✅ Notification displayed successfully");
-            })
-            .catch((notifErr) => {
-              console.error("❌ Error displaying notification:", notifErr);
-              throw notifErr;
+          await self.registration.showNotification(title, options);
+          console.log("✅ Notification displayed successfully");
+        } catch (err) {
+          console.error("Error processing push notification:", err);
+          // Last resort: show default notification
+          try {
+            await self.registration.showNotification("Reuben's Bucks", {
+              body: "New game update",
+              icon: "/manifest-icon-192.maskable.png",
             });
-        })
-        .catch((err) => {
-          console.error("Error parsing push data:", err);
-          // Fallback: try text() method
-          return event.data
-            .text()
-            .then((text) => {
-              const data = JSON.parse(text);
-              const title = data.title || "Reuben's Bucks";
-              const body = data.body || "New game update";
-
-              return self.registration.showNotification(title, {
-                body: body,
-                icon: "/manifest-icon-192.maskable.png",
-                badge: "/manifest-icon-192.maskable.png",
-                vibrate: [200, 100, 200],
-                tag: data.tag || "game-update",
-                data: data.data || {},
-              });
-            })
-            .catch((err2) => {
-              console.error("Error parsing push data as text:", err2);
-              // Last resort: show default notification
-              return self.registration.showNotification("Reuben's Bucks", {
-                body: "New game update",
-                icon: "/manifest-icon-192.maskable.png",
-              });
-            });
-        })
+            console.log("Default notification displayed");
+          } catch (notifErr) {
+            console.error("Failed to show default notification:", notifErr);
+          }
+        }
+      })()
     : Promise.resolve(
         self.registration.showNotification("Reuben's Bucks", {
           body: "New game update",
@@ -118,4 +112,3 @@ self.addEventListener("notificationclick", function (event) {
       })
   );
 });
-

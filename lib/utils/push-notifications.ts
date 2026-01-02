@@ -180,7 +180,10 @@ async function sendPushNotification(
     console.log("Payload:", payload);
     console.log("Payload JSON:", JSON.stringify(payload));
 
-    const result = await webpush.sendNotification(sub, JSON.stringify(payload));
+    // Pass the payload object directly - web-push will handle JSON serialization
+    const result = await webpush.sendNotification(sub, JSON.stringify(payload), {
+      TTL: 86400, // 24 hours
+    });
     console.log("Push notification sent successfully, result:", result);
     return true;
   } catch (error) {
