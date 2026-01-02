@@ -132,6 +132,19 @@ export function ChallengeDialog({
       return;
     }
 
+    // Validate photo requirement for pub challenge result step (required on success)
+    if (
+      challengeType === "pub" &&
+      step === "result" &&
+      success === true &&
+      !fileToUpload
+    ) {
+      setUploadError(
+        "Please upload evidence to prove you passed the challenge."
+      );
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -527,7 +540,12 @@ export function ChallengeDialog({
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
-                        onClick={() => setSuccess(true)}
+                        onClick={() => {
+                          setSuccess(true);
+                          setFile(null);
+                          setFileInputKey((prev) => prev + 1);
+                          resetUpload();
+                        }}
                         className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
                           success === true
                             ? "border-green-500 bg-green-50"
@@ -553,7 +571,12 @@ export function ChallengeDialog({
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSuccess(false)}
+                        onClick={() => {
+                          setSuccess(false);
+                          setFile(null);
+                          setFileInputKey((prev) => prev + 1);
+                          resetUpload();
+                        }}
                         className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
                           success === false
                             ? "border-red-500 bg-red-50"
@@ -580,13 +603,73 @@ export function ChallengeDialog({
                     </div>
                   </div>
 
+                  {/* Evidence upload for result step */}
+                  {success === true && (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        className={`w-full py-6 px-4 border-2 border-dashed rounded-xl transition-all flex flex-col items-center justify-center gap-2 active:scale-[0.98] ${
+                          file
+                            ? "border-green-400 bg-green-50"
+                            : "border-green-300 bg-green-50/50 hover:bg-green-100 hover:border-green-400"
+                        }`}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                          <Camera className="h-6 w-6 text-green-600" />
+                        </div>
+                        <div className="text-center">
+                          <p className="font-semibold text-sm text-green-800">
+                            {file
+                              ? "✓ Evidence attached"
+                              : "Add proof (required)"}
+                          </p>
+                          <p className="text-xs text-green-600 mt-0.5">
+                            {file
+                              ? file.name.slice(0, 30) +
+                                (file.name.length > 30 ? "..." : "")
+                              : "Photo or video evidence"}
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+                  )}
+
+                  {success === false && (
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        className={`w-full py-4 px-4 border-2 border-dashed rounded-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98] ${
+                          file
+                            ? "border-red-300 bg-red-50"
+                            : "border-muted bg-muted/30 hover:bg-muted/50 hover:border-muted-foreground/30"
+                        }`}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Camera className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          {file
+                            ? `✓ ${file.name.slice(0, 25)}${
+                                file.name.length > 25 ? "..." : ""
+                              }`
+                            : "Add evidence (optional)"}
+                        </span>
+                      </button>
+                    </div>
+                  )}
+
                   {success !== null && (
                     <Button
                       onClick={() => submit()}
                       className="w-full"
                       variant={success ? "default" : "destructive"}
+                      disabled={success === true && !file}
                     >
-                      {success ? "✅ Submit Pass" : "❌ Submit Fail"}
+                      {success
+                        ? file
+                          ? "✅ Submit Pass"
+                          : "Add evidence first"
+                        : "❌ Submit Fail"}
                     </Button>
                   )}
                 </>

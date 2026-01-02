@@ -11,28 +11,40 @@ export function useActivityFeed() {
 
   useEffect(() => {
     async function load() {
-      const [{ data: captures }, { data: attempts }, { data: bonus }] =
+      const [{ data: captures }, { data: attempts }, { data: bonus }, { data: pubs }] =
         await Promise.all([
-          supabase.from("captures").select("*, teams(*), players(*)"),
-          supabase.from("challenge_attempts").select("*, teams(*), players(*)"),
-          supabase.from("bonus_points").select("*, teams(*), players(*)"),
+          supabase.from("captures").select("*, teams(*), players(*), pubs(name)"),
+          supabase.from("challenge_attempts").select("*, teams(*), players(*), challenges(pub_id, description, pubs(name))"),
+          supabase.from("bonus_points").select("*, teams(*), players(*), challenges(description)"),
+          supabase.from("pubs").select("id, name"),
         ]);
+
+      // Create a lookup map for pub names
+      const pubNameMap = new Map((pubs ?? []).map(p => [p.id, p.name]));
 
       const all = [
         ...(captures ?? []).map((c) => ({
           ...c,
           type: "capture",
           created_at: c.created_at,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          pubName: (c as any).pubs?.name || pubNameMap.get(c.pub_id),
         })),
         ...(attempts ?? []).map((a) => ({
           ...a,
           type: "challenge",
           created_at: a.created_at,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          pubName: (a as any).challenges?.pubs?.name,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          challengeDescription: (a as any).challenges?.description,
         })),
         ...(bonus ?? []).map((b) => ({
           ...b,
           type: "bonus",
           created_at: b.created_at,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          challengeDescription: (b as any).challenges?.description,
         })),
       ];
 

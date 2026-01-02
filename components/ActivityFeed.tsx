@@ -194,21 +194,6 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                         })}
                       </span>
                     </div>
-
-                    {/* Team badge */}
-                    <div
-                      className="inline-flex items-center gap-1.5 mt-1.5 px-2 py-0.5 rounded-full text-xs"
-                      style={{
-                        backgroundColor: teamColor + "15",
-                        color: teamColor,
-                      }}
-                    >
-                      <span
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: teamColor }}
-                      />
-                      {item.teams?.name || "Unknown Team"}
-                    </div>
                   </div>
                 </div>
 

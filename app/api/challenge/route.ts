@@ -47,6 +47,14 @@ export async function POST(req: Request) {
       });
   }
 
+  // Pub-specific challenges: enforce evidence for successful result
+  if (challenge.type === "pub" && step === "result" && success === true) {
+    if (!mediaUrl)
+      return new NextResponse("Photo/video required to prove challenge success", {
+        status: 400,
+      });
+  }
+
   // Insert challenge attempt (only for pub challenges, or for global challenge start steps)
   // For global challenge results, we only insert bonus_point (below) to avoid duplicate feed items
   if (challenge.type === "pub" || (challenge.type === "global" && step === "start")) {
