@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Share, ChevronDown } from "lucide-react";
-import Link from "next/link";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -17,7 +16,7 @@ export default function InstallPage() {
   const [installState, setInstallState] = useState<InstallState>("ready");
   const [platform, setPlatform] = useState<"ios" | "android" | "desktop" | "unknown">("unknown");
   const [browser, setBrowser] = useState<"safari" | "chrome" | "other">("other");
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(10);
 
   useEffect(() => {
     // Check if already installed
@@ -137,6 +136,17 @@ export default function InstallPage() {
     );
   }
 
+  // Handle opening the PWA (close this browser tab so user opens from home screen)
+  const handleOpenPWA = () => {
+    // Try to close this browser tab - this encourages user to open from home screen
+    // window.close() only works for windows opened via JavaScript in most browsers,
+    // but we try anyway and the user will need to manually close if it doesn't work
+    window.close();
+    
+    // If window.close() didn't work (which is common), the page will still be visible
+    // The UI already tells them to open from home screen, so that's fine
+  };
+
   // Installed state - celebration!
   if (installState === "installed") {
     return (
@@ -152,22 +162,25 @@ export default function InstallPage() {
 
           <div className="bg-green-100 border-2 border-green-300 rounded-xl p-4 space-y-2">
             <p className="text-green-800 font-medium">
-              Look for the app icon on your home screen
+              🏠 Find the app on your home screen
             </p>
             <p className="text-green-700 text-sm">
-              Open it from there for the full experience
+              Close this browser and tap the app icon to get started!
             </p>
           </div>
 
-          <Link href="/">
-            <Button
-              size="lg"
-              className="w-full text-lg py-6 bg-green-600 hover:bg-green-700"
-              disabled={countdown > 0}
-            >
-              {countdown > 0 ? `Ready in ${countdown}...` : "🍻 Let's Go!"}
-            </Button>
-          </Link>
+          <Button
+            onClick={handleOpenPWA}
+            size="lg"
+            className="w-full text-lg py-6 bg-green-600 hover:bg-green-700"
+            disabled={countdown > 0}
+          >
+            {countdown > 0 ? `Ready in ${countdown}...` : "🍻 Close & Open App"}
+          </Button>
+          
+          <p className="text-green-600 text-sm">
+            If this doesn&apos;t close automatically, just close this tab manually
+          </p>
         </div>
       </div>
     );
