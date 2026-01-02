@@ -50,12 +50,18 @@ export function PushNotificationDebug() {
     }
   };
 
-  // Only show if debug query param is present
-  if (typeof window !== "undefined") {
-    const params = new URLSearchParams(window.location.search);
-    if (!params.has("debug")) {
-      return null;
+  // Show debug panel if debug query param is present OR if no subscription exists
+  const [showDebug, setShowDebug] = useState(false);
+  
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      setShowDebug(params.has("debug") || !isSubscribed);
     }
+  }, [isSubscribed]);
+
+  if (!showDebug) {
+    return null;
   }
 
   return (

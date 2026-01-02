@@ -20,6 +20,29 @@ export function NotificationPrompt() {
     }
   }, []);
 
+  // Debug logging
+  useEffect(() => {
+    console.log("NotificationPrompt state:", {
+      isSupported,
+      isSubscribed,
+      permission,
+      dismissed,
+      hasPlayer: !!player?.id,
+      willShow: !(!isSupported || isSubscribed || permission === "denied" || dismissed),
+    });
+  }, [isSupported, isSubscribed, permission, dismissed, player]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log("NotificationPrompt state:", {
+      isSupported,
+      isSubscribed,
+      permission,
+      dismissed,
+      hasPlayer: !!player?.id,
+    });
+  }, [isSupported, isSubscribed, permission, dismissed, player]);
+
   // Don't show if:
   // - Not supported
   // - Already subscribed
