@@ -22,14 +22,16 @@ export async function uploadWithProgress(
       data: { session },
     } = await supabase.auth.getSession();
 
-    // Get the Supabase project URL
-    const supabaseUrl = supabase.supabaseUrl;
+    // Get the Supabase project URL from environment variable
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    
+    if (!supabaseUrl) {
+      return { error: new Error("NEXT_PUBLIC_SUPABASE_URL is not configured") };
+    }
     
     // For public buckets, use the anon key (available as NEXT_PUBLIC_SUPABASE_ANON_KEY)
     // For authenticated uploads, prefer the session token
-    const anonKey = typeof window !== "undefined" 
-      ? (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string)
-      : null;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     
     const authToken = session?.access_token || anonKey;
     
