@@ -327,5 +327,5 @@ export function useRealtimeGame() {
     };
   }, [supabase]);
 
-  return { pubs, captures, bonusPoints };
+  return { pubs, captures, bonusPoints, teams };
 }

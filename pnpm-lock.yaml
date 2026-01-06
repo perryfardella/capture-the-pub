@@ -23,6 +23,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.89.0
         version: 2.89.0
+      '@types/leaflet':
+        specifier: ^1.9.21
+        version: 1.9.21
       '@vercel/functions':
         specifier: ^3.3.4
         version: 3.3.4
@@ -32,6 +35,12 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      d3-delaunay:
+        specifier: ^6.0.4
+        version: 6.0.4
+      leaflet:
+        specifier: ^1.9.4
+        version: 1.9.4
       lucide-react:
         specifier: ^0.562.0
         version: 0.562.0(react@19.2.3)
@@ -44,6 +53,9 @@ importers:
       react-dom:
         specifier: 19.2.3
         version: 19.2.3(react@19.2.3)
+      react-leaflet:
+        specifier: ^5.0.0
+        version: 5.0.0(leaflet@1.9.4)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       tailwind-merge:
         specifier: ^3.4.0
         version: 3.4.0
@@ -650,6 +662,13 @@ packages:
       '@types/react':
         optional: true
 
+  '@react-leaflet/core@3.0.0':
+    resolution: {integrity: sha512-3EWmekh4Nz+pGcr+xjf0KNyYfC3U2JjnkWsh0zcqaexYqmmB5ZhH37kz41JXGmKzpaMZCnPofBBm64i+YrEvGQ==}
+    peerDependencies:
+      leaflet: ^1.9.0
+      react: ^19.0.0
+      react-dom: ^19.0.0
+
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
 
@@ -779,11 +798,17 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
+  '@types/geojson@7946.0.16':
+    resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
   '@types/json5@0.0.29':
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
+
+  '@types/leaflet@1.9.21':
+    resolution: {integrity: sha512-TbAd9DaPGSnzp6QvtYngntMZgcRk+igFELwR2N99XZn7RXUdKgsXMR+28bUO0rPsWp8MIu/f47luLIQuSLYv/w==}
 
   '@types/node@20.19.27':
     resolution: {integrity: sha512-N2clP5pJhB2YnZJ3PIHFk5RkygRX5WO/5f0WC08tp0wd+sv0rsJk3MqWn3CbNmT2J505a5336jaQj4ph1AdMug==}
@@ -1143,6 +1168,10 @@ packages:
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
+  d3-delaunay@6.0.4:
+    resolution: {integrity: sha512-mdjtIZ1XLAM8bm/hx3WwjfHt6Sggek7qH043O8KEjDXN40xi3vx/6pYSVTwLjEgiXQTbvaouWKynLBiUZ6SK6A==}
+    engines: {node: '>=12'}
+
   damerau-levenshtein@1.0.8:
     resolution: {integrity: sha512-sdQSFB7+llfUcQHUQO3+B8ERRj0Oa4w9POWMI/puGtuf7gFywGmkaLCElnudfTiKZV+NvHqL0ifzdrI8Ro7ESA==}
 
@@ -1185,6 +1214,9 @@ packages:
   define-properties@1.2.1:
     resolution: {integrity: sha512-8QmQKqEASLd5nx0U1B1okLElbUuuttJ/AnYmRXbbbGDWh6uS208EjD4Xqq/I9wK7u0v6O08XhTWnt5XtEbR6Dg==}
     engines: {node: '>= 0.4'}
+
+  delaunator@5.0.1:
+    resolution: {integrity: sha512-8nvh+XBe96aCESrGOqMp/84b13H9cdKbG5P2ejQCh4d4sK9RL4371qou9drQjMhvnPmhWl5hnmqbEE0fXr9Xnw==}
 
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
@@ -1717,6 +1749,9 @@ packages:
     resolution: {integrity: sha512-MbjN408fEndfiQXbFQ1vnd+1NoLDsnQW41410oQBXiyXDMYH5z505juWa4KUE1LqxRC7DgOgZDbKLxHIwm27hA==}
     engines: {node: '>=0.10'}
 
+  leaflet@1.9.4:
+    resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
+
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
@@ -1986,6 +2021,13 @@ packages:
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
+  react-leaflet@5.0.0:
+    resolution: {integrity: sha512-CWbTpr5vcHw5bt9i4zSlPEVQdTVcML390TjeDG0cK59z1ylexpqC6M1PJFjV8jD7CF+ACBFsLIDs6DRMoLEofw==}
+    peerDependencies:
+      leaflet: ^1.9.0
+      react: ^19.0.0
+      react-dom: ^19.0.0
+
   react-remove-scroll-bar@2.3.8:
     resolution: {integrity: sha512-9r+yi9+mgU33AKcj6IbT9oRCO78WriSj6t/cF8DWBZJ9aOGPOTEDvdUDz1FwKim7QXWwmHqtdHnRJfhAxEG46Q==}
     engines: {node: '>=10'}
@@ -2047,6 +2089,9 @@ packages:
   reusify@1.1.0:
     resolution: {integrity: sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
+
+  robust-predicates@3.0.2:
+    resolution: {integrity: sha512-IXgzBWvWQwE6PrDI05OvmXUIruQTcoMDzRsOd5CDvHCVLcLHMTSYvOK5Cm46kWqlV3yAbuSpBZdJ5oP5OUoStg==}
 
   run-parallel@1.2.0:
     resolution: {integrity: sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==}
@@ -2858,6 +2903,12 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.7
 
+  '@react-leaflet/core@3.0.0(leaflet@1.9.4)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      leaflet: 1.9.4
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+
   '@rtsao/scc@1.1.0': {}
 
   '@supabase/auth-js@2.89.0':
@@ -2983,9 +3034,15 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
+  '@types/geojson@7946.0.16': {}
+
   '@types/json-schema@7.0.15': {}
 
   '@types/json5@0.0.29': {}
+
+  '@types/leaflet@1.9.21':
+    dependencies:
+      '@types/geojson': 7946.0.16
 
   '@types/node@20.19.27':
     dependencies:
@@ -3361,6 +3418,10 @@ snapshots:
 
   csstype@3.2.3: {}
 
+  d3-delaunay@6.0.4:
+    dependencies:
+      delaunator: 5.0.1
+
   damerau-levenshtein@1.0.8: {}
 
   data-view-buffer@1.0.2:
@@ -3402,6 +3463,10 @@ snapshots:
       define-data-property: 1.1.4
       has-property-descriptors: 1.0.2
       object-keys: 1.1.1
+
+  delaunator@5.0.1:
+    dependencies:
+      robust-predicates: 3.0.2
 
   detect-libc@2.1.2: {}
 
@@ -4085,6 +4150,8 @@ snapshots:
     dependencies:
       language-subtag-registry: 0.3.23
 
+  leaflet@1.9.4: {}
+
   levn@0.4.1:
     dependencies:
       prelude-ls: 1.2.1
@@ -4330,6 +4397,13 @@ snapshots:
 
   react-is@16.13.1: {}
 
+  react-leaflet@5.0.0(leaflet@1.9.4)(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
+    dependencies:
+      '@react-leaflet/core': 3.0.0(leaflet@1.9.4)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      leaflet: 1.9.4
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+
   react-remove-scroll-bar@2.3.8(@types/react@19.2.7)(react@19.2.3):
     dependencies:
       react: 19.2.3
@@ -4396,6 +4470,8 @@ snapshots:
       supports-preserve-symlinks-flag: 1.0.0
 
   reusify@1.1.0: {}
+
+  robust-predicates@3.0.2: {}
 
   run-parallel@1.2.0:
     dependencies:

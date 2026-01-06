@@ -10,7 +10,7 @@ select
     when name = 'The National Hotel' then 'Where`s Wally challenge'
     when name = 'Gage Roads Freo Brewery' then 'Ring challenge'
     when name = 'Bathers Beach House' then 'Swimming challenge'
-    when name = 'B Lucky and Sons' then 'Dragon punch 9600 challenge'
+    when name = 'Archie Brothers Fremantle' then 'Dragon punch 9600 challenge'
     when name = 'Mons O`Shea' then 'Split the G challenge'
     when name = 'Calamity`s Rod Freo' then 'Pour your own drink challenge'
   end as description
@@ -21,7 +21,7 @@ where name in (
   'The National Hotel',
   'Gage Roads Freo Brewery',
   'Bathers Beach House',
-  'B Lucky and Sons',
+  'Archie Brothers Fremantle',
   'Mons O`Shea',
   'Calamity`s Rod Freo'
 );

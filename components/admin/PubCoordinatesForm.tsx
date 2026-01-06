@@ -24,8 +24,8 @@ export function PubCoordinatesForm({
     pubs.map(pub => ({
       id: pub.id,
       name: pub.name,
-      latitude: pub.latitude || '',
-      longitude: pub.longitude || ''
+      latitude: pub.latitude?.toString() || '',
+      longitude: pub.longitude?.toString() || ''
     }))
   );
   const [saving, setSaving] = useState(false);
@@ -57,8 +57,8 @@ export function PubCoordinatesForm({
     try {
       // Validate all coordinates
       const invalidCoords = coordinates.filter(coord => {
-        const lat = coord.latitude.trim();
-        const lng = coord.longitude.trim();
+        const lat = coord.latitude?.trim();
+        const lng = coord.longitude?.trim();
         
         if (!lat || !lng) return false; // Allow empty coordinates
         
@@ -73,7 +73,7 @@ export function PubCoordinatesForm({
 
       // Save coordinates to database
       const updates = coordinates
-        .filter(coord => coord.latitude.trim() && coord.longitude.trim())
+        .filter(coord => coord.latitude?.trim() && coord.longitude?.trim())
         .map(coord => ({
           id: coord.id,
           latitude: parseFloat(coord.latitude),
@@ -109,7 +109,7 @@ export function PubCoordinatesForm({
 
   const exportAsJSON = () => {
     const validCoords = coordinates
-      .filter(coord => coord.latitude.trim() && coord.longitude.trim())
+      .filter(coord => coord.latitude?.trim() && coord.longitude?.trim())
       .map(coord => ({
         name: coord.name,
         latitude: parseFloat(coord.latitude),
@@ -127,7 +127,7 @@ export function PubCoordinatesForm({
   };
 
   const validCount = coordinates.filter(coord => 
-    coord.latitude.trim() && coord.longitude.trim() &&
+    coord.latitude?.trim() && coord.longitude?.trim() &&
     validateCoordinate(coord.latitude, 'latitude') &&
     validateCoordinate(coord.longitude, 'longitude')
   ).length;
@@ -151,8 +151,8 @@ export function PubCoordinatesForm({
 
       <div className="space-y-3 max-h-96 overflow-y-auto">
         {coordinates.map((coord) => {
-          const latValid = !coord.latitude.trim() || validateCoordinate(coord.latitude, 'latitude');
-          const lngValid = !coord.longitude.trim() || validateCoordinate(coord.longitude, 'longitude');
+          const latValid = !coord.latitude?.trim() || validateCoordinate(coord.latitude, 'latitude');
+          const lngValid = !coord.longitude?.trim() || validateCoordinate(coord.longitude, 'longitude');
           
           return (
             <div

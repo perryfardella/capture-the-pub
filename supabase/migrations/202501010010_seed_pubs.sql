@@ -12,7 +12,6 @@ insert into pubs (name, controlling_team_id, drink_count, is_locked, locked_by_t
   ('Patio Bar', null, 0, false, null),
   ('Strange Company', null, 0, false, null),
   ('Beerpourium', null, 0, false, null),
-  ('B Lucky and Sons', null, 0, false, null),
   ('Mons O`Shea', null, 0, false, null),
   ('Calamity`s Rod Freo', null, 0, false, null),
   ('Sail and Anchor', null, 0, false, null),

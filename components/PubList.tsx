@@ -22,6 +22,8 @@ interface Pub {
   drink_count: number;
   controlling_team_id?: string;
   is_locked: boolean;
+  latitude?: number;
+  longitude?: number;
   challenge?: Challenge;
 }
 

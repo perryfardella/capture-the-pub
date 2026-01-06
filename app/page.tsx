@@ -4,6 +4,19 @@ import { ActivityFeed } from "@/components/ActivityFeed";
 import { ChallengeDialog } from "@/components/ChallengeDialog";
 import { PubList } from "@/components/PubList";
 import { Scoreboard } from "@/components/Scoreboard";
+import dynamic from "next/dynamic";
+
+const TerritorialMap = dynamic(() => import("@/components/TerritorialMap").then(mod => ({ default: mod.TerritorialMap })), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-96 bg-slate-800 rounded-lg">
+      <div className="text-center text-slate-400">
+        <div className="text-4xl mb-3">🗺️</div>
+        <p>Loading map...</p>
+      </div>
+    </div>
+  ),
+});
 import { NotificationPrompt } from "@/components/NotificationPrompt";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { PushNotificationDebug } from "@/components/PushNotificationDebug";
@@ -18,7 +31,7 @@ import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const { player, loading } = usePlayer();
-  const { pubs, captures, bonusPoints } = useRealtimeGame();
+  const { pubs, captures, bonusPoints, teams } = useRealtimeGame();
   const offline = useOffline();
   const { isActive } = useGameState();
   // TODO
@@ -29,12 +42,9 @@ export default function Home() {
   const [challengeAttempts, setChallengeAttempts] = useState<any[]>([]);
   // TODO
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [teams, setTeams] = useState<any[]>([]);
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [playersByTeam, setPlayersByTeam] = useState<Record<string, any[]>>({});
   const [activeTab, setActiveTab] = useState<
-    "pubs" | "scoreboard" | "activity" | "challenges"
+    "pubs" | "map" | "scoreboard" | "activity" | "challenges"
   >("pubs");
 
   // Secret admin access - tap beer emoji 5 times quickly
@@ -99,11 +109,6 @@ export default function Home() {
   }, [player?.team_id]);
 
   useEffect(() => {
-    async function loadTeams() {
-      const supabase = createSupabaseBrowserClient();
-      const { data } = await supabase.from("teams").select("*");
-      setTeams(data ?? []);
-    }
 
     async function loadPlayers() {
       const supabase = createSupabaseBrowserClient();
@@ -125,7 +130,6 @@ export default function Home() {
       }
     }
 
-    loadTeams();
     loadPlayers();
 
     // Subscribe to players updates
@@ -272,6 +276,7 @@ export default function Home() {
 
   const tabs = [
     { id: "pubs" as const, label: "Pubs", icon: "📍" },
+    { id: "map" as const, label: "Map", icon: "🗺️" },
     { id: "scoreboard" as const, label: "Scores", icon: "🏆" },
     { id: "activity" as const, label: "Feed", icon: "📸" },
     { id: "challenges" as const, label: "Global Challenges", icon: "🎯" },
@@ -334,6 +339,7 @@ export default function Home() {
 
       <div className="flex-1 overflow-y-auto p-4">
         {activeTab === "pubs" && <PubList pubs={pubs} teams={teams} playerTeamId={player?.team_id} />}
+        {activeTab === "map" && <TerritorialMap pubs={pubs} teams={teams} playerTeamId={player?.team_id} />}
         {activeTab === "scoreboard" && (
           <Scoreboard
             teams={teams}
