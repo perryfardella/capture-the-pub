@@ -95,6 +95,21 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
           .custom-popup .leaflet-popup-content-wrapper {
             border-radius: 8px !important;
           }
+          /* Ensure dialogs appear above map */
+          [data-slot="dialog-overlay"] {
+            z-index: 9999 !important;
+          }
+          [data-slot="dialog-content"] {
+            z-index: 10000 !important;
+          }
+          /* Also target Radix UI portal */
+          [data-radix-portal] {
+            z-index: 9999 !important;
+          }
+          /* Ensure map doesn't interfere */
+          .leaflet-container {
+            z-index: 1 !important;
+          }
         `;
         document.head.appendChild(styleElement);
       }
@@ -287,6 +302,7 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
         center={center}
         zoom={15}
         className="h-full w-full"
+        style={{ zIndex: 1 }}
         zoomControl={true}
         scrollWheelZoom={true}
       >
