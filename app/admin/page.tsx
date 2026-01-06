@@ -11,6 +11,7 @@ import { ActivityOverview } from "@/components/admin/ActivityOverview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 type Tab =
   | "game"
@@ -234,6 +235,9 @@ export default function AdminPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" asChild className="bg-slate-800/50 border-slate-600 text-slate-300 hover:text-white hover:bg-slate-700">
+                <Link href="/">🏠 Home</Link>
+              </Button>
               {loading && (
                 <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
               )}
