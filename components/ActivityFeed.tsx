@@ -146,7 +146,7 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                               {item.step === "start"
                                 ? "started"
                                 : item.success
-                                ? "passed"
+                                ? "completed"
                                 : "failed"}{" "}
                             </span>
                             {item.pubName ? (
@@ -162,6 +162,12 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                             ) : (
                               <span className="text-muted-foreground">
                                 a challenge
+                              </span>
+                            )}
+                            {item.challengeDescription && (
+                              <span className="text-muted-foreground">
+                                {" "}
+                                - {item.challengeDescription}
                               </span>
                             )}
                           </>
