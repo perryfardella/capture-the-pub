@@ -333,7 +333,7 @@ export default function Home() {
       )}
 
       <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === "pubs" && <PubList pubs={pubs} teams={teams} />}
+        {activeTab === "pubs" && <PubList pubs={pubs} teams={teams} playerTeamId={player?.team_id} />}
         {activeTab === "scoreboard" && (
           <Scoreboard
             teams={teams}

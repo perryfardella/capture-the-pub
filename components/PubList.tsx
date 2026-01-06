@@ -28,6 +28,7 @@ interface Pub {
 interface PubListProps {
   pubs: Pub[];
   teams: Team[];
+  playerTeamId?: string;
 }
 
 interface PubState {
@@ -36,7 +37,7 @@ interface PubState {
   is_locked: boolean;
 }
 
-export function PubList({ pubs, teams }: PubListProps) {
+export function PubList({ pubs, teams, playerTeamId }: PubListProps) {
   const { isActive } = useGameState();
   const [animatingPubs, setAnimatingPubs] = useState<Set<string>>(new Set());
   const [animatingDrinks, setAnimatingDrinks] = useState<Set<string>>(new Set());
@@ -202,8 +203,9 @@ export function PubList({ pubs, teams }: PubListProps) {
                       pubId={pub.id}
                       pubName={pub.name}
                       description={pub.challenge.description}
-                      disabled={!isActive}
+                      disabled={!isActive || playerTeamId !== pub.controlling_team_id}
                       onSuccess={() => {}}
+                      playerTeamId={playerTeamId}
                     />
                   )}
 

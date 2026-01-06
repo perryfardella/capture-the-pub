@@ -39,37 +39,51 @@ export async function POST(req: Request) {
 
   // Media is already uploaded directly from client, use the provided URL
 
-  // Pub-specific challenges: enforce drink for start
-  if (challenge.type === "pub" && step === "start") {
-    if (!mediaUrl)
-      return new NextResponse("Photo/video required to start pub challenge", {
-        status: 400,
-      });
+  // Both challenge types require evidence
+  if (!mediaUrl) {
+    return new NextResponse("Photo/video required to complete challenge", {
+      status: 400,
+    });
   }
 
-  // Pub-specific challenges: enforce evidence for successful result
-  if (challenge.type === "pub" && step === "result" && success === true) {
-    if (!mediaUrl)
-      return new NextResponse("Photo/video required to prove challenge success", {
-        status: 400,
+  // For pub challenges, ensure the team controls the pub
+  if (challenge.type === "pub" && pubId) {
+    const { data: pub } = await supabase
+      .from("pubs")
+      .select("controlling_team_id, is_locked")
+      .eq("id", pubId)
+      .single();
+
+    if (!pub) {
+      return new NextResponse("Pub not found", { status: 404 });
+    }
+
+    if (pub.is_locked) {
+      return new NextResponse("This pub is already locked", { status: 400 });
+    }
+
+    if (pub.controlling_team_id !== player.team_id) {
+      return new NextResponse("Only the controlling team can attempt this challenge", {
+        status: 403,
       });
+    }
   }
 
-  // Insert challenge attempt (only for pub challenges, or for global challenge start steps)
-  // For global challenge results, we only insert bonus_point (below) to avoid duplicate feed items
-  if (challenge.type === "pub" || (challenge.type === "global" && step === "start")) {
+  // Insert challenge attempt for pub challenges only
+  // Global challenges only create bonus_point entries to avoid duplicate feed items
+  if (challenge.type === "pub") {
     await supabase.from("challenge_attempts").insert({
       challenge_id: challengeId,
       team_id: player.team_id,
       player_id: playerId,
-      step,
-      success: step === "result" ? success : null,
+      step: "result",
+      success: true, // Always true since teams only submit when they complete
       media_url: mediaUrl ?? "",
     });
   }
 
-  // Handle pub-specific challenge result → lock pub only on success
-  if (challenge.type === "pub" && step === "result" && success === true) {
+  // Handle pub-specific challenge result → lock pub
+  if (challenge.type === "pub") {
     const { error: lockError } = await supabase
       .from("pubs")
       .update({
@@ -107,7 +121,7 @@ export async function POST(req: Request) {
 
   // Handle global challenge → bonus point (with media_url)
   // Allow multiple teams to complete the same global challenge
-  if (challenge.type === "global" && step === "result") {
+  if (challenge.type === "global") {
     // Check if this team has already completed this challenge
     const { data: existingBonusPoint } = await supabase
       .from("bonus_points")
