@@ -13,7 +13,7 @@ import { usePlayer } from "@/lib/hooks/usePlayer";
 import { useRealtimeGame } from "@/lib/hooks/useRealtimeGame";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
@@ -36,6 +36,31 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<
     "pubs" | "scoreboard" | "activity" | "challenges"
   >("pubs");
+
+  // Secret admin access - tap beer emoji 5 times quickly
+  const secretTapCountRef = useRef(0);
+  const secretTapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSecretTap = useCallback(() => {
+    secretTapCountRef.current += 1;
+
+    // Clear existing timeout
+    if (secretTapTimeoutRef.current) {
+      clearTimeout(secretTapTimeoutRef.current);
+    }
+
+    // If we hit 5 taps, navigate to admin
+    if (secretTapCountRef.current >= 5) {
+      secretTapCountRef.current = 0;
+      window.location.href = "/admin";
+      return;
+    }
+
+    // Reset counter after 2 seconds of no tapping
+    secretTapTimeoutRef.current = setTimeout(() => {
+      secretTapCountRef.current = 0;
+    }, 2000);
+  }, []);
 
   useEffect(() => {
     async function loadGlobalChallenges() {
@@ -260,7 +285,13 @@ export default function Home() {
       <header className="border-b bg-background/95 backdrop-blur-sm px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🍻</span>
+            <button
+              onClick={handleSecretTap}
+              className="text-2xl select-none active:scale-95 transition-transform"
+              aria-label="Logo"
+            >
+              🍻
+            </button>
             <div className="flex flex-col">
               <h1 className="text-base font-bold leading-tight">
                 Capture the Pub

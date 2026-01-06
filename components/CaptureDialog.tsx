@@ -67,7 +67,7 @@ export function CaptureDialog({
 
   async function submit(selectedFile: File) {
     setIsSubmitting(true);
-    
+
     const playerId = localStorage.getItem("player_id");
     if (!playerId) {
       setUploadError("No player session found. Please rejoin the game.");

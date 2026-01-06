@@ -1,13 +1,20 @@
 -- Seed 10 placeholder pubs
 insert into pubs (name, controlling_team_id, drink_count, is_locked, locked_by_team_id) values
-  ('The Crown & Anchor', null, 0, false, null),
-  ('The Red Lion', null, 0, false, null),
-  ('The King''s Head', null, 0, false, null),
-  ('The White Horse', null, 0, false, null),
-  ('The Old Bell', null, 0, false, null),
-  ('The Rose & Crown', null, 0, false, null),
-  ('The Black Swan', null, 0, false, null),
-  ('The Golden Fleece', null, 0, false, null),
-  ('The Three Tuns', null, 0, false, null),
-  ('The Fox & Hounds', null, 0, false, null);
-
+  ('Varsity Freo', null, 0, false, null),
+  ('The Federal Hotel', null, 0, false, null),
+  ('Gage Roads Freo Brewery', null, 0, false, null),
+  ('Fremantle Buffalo Club', null, 0, false, null),
+  ('The National Hotel', null, 0, false, null),
+  ('Jungle Bird', null, 0, false, null),
+  ('Bathers Beach House', null, 0, false, null),
+  ('Little Creatures Brewery', null, 0, false, null),
+  ('Ball & Chain', null, 0, false, null),
+  ('Patio Bar', null, 0, false, null),
+  ('Strange Company', null, 0, false, null),
+  ('Beerpourium', null, 0, false, null),
+  ('B Lucky and Sons', null, 0, false, null),
+  ('Mons O`Shea', null, 0, false, null),
+  ('Calamity`s Rod Freo', null, 0, false, null),
+  ('Sail and Anchor', null, 0, false, null),
+  ('The Norfolk Hotel', null, 0, false, null),
+  ('Archie Brothers Fremantle', null, 0, false, null);

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function JoinPage() {
   const supabase = createSupabaseBrowserClient();
@@ -14,6 +15,31 @@ export default function JoinPage() {
   const [teamId, setTeamId] = useState("");
   const [loading, setLoading] = useState(false);
   const [teamsLoading, setTeamsLoading] = useState(true);
+
+  // Secret admin access - tap beer emoji 5 times quickly
+  const secretTapCountRef = useRef(0);
+  const secretTapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleSecretTap = useCallback(() => {
+    secretTapCountRef.current += 1;
+
+    // Clear existing timeout
+    if (secretTapTimeoutRef.current) {
+      clearTimeout(secretTapTimeoutRef.current);
+    }
+
+    // If we hit 5 taps, navigate to admin
+    if (secretTapCountRef.current >= 5) {
+      secretTapCountRef.current = 0;
+      window.location.href = "/admin";
+      return;
+    }
+
+    // Reset counter after 2 seconds of no tapping
+    secretTapTimeoutRef.current = setTimeout(() => {
+      secretTapCountRef.current = 0;
+    }, 2000);
+  }, []);
 
   useEffect(() => {
     async function loadTeams() {
@@ -95,7 +121,13 @@ export default function JoinPage() {
     <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50">
       {/* Hero */}
       <div className="px-6 pt-10 pb-6 text-center animate-in fade-in slide-in-from-top-4 duration-500">
-        <div className="text-6xl mb-3">🍻</div>
+        <button
+          onClick={handleSecretTap}
+          className="text-6xl mb-3 select-none active:scale-95 transition-transform"
+          aria-label="Logo"
+        >
+          🍻
+        </button>
         <h1 className="text-2xl font-black text-amber-900">Capture the Pub</h1>
         <p className="text-amber-700 mt-1">Reuben&apos;s Bucks Party</p>
       </div>
@@ -113,9 +145,7 @@ export default function JoinPage() {
 
             {/* Nickname Input */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">
-                Your Nickname
-              </label>
+              <Label className="text-gray-700">Your Nickname</Label>
               <Input
                 placeholder="e.g. Big Davo"
                 value={nickname}
@@ -128,9 +158,7 @@ export default function JoinPage() {
 
             {/* Team Selection */}
             <div className="space-y-3">
-              <label className="text-sm font-medium text-gray-700">
-                Choose Your Team
-              </label>
+              <Label className="text-gray-700">Choose Your Team</Label>
               {teamsLoading ? (
                 <div className="space-y-2">
                   {[1, 2, 3].map((i) => (
@@ -148,14 +176,15 @@ export default function JoinPage() {
               ) : (
                 <div className="grid grid-cols-1 gap-2">
                   {teams.map((team, index) => (
-                    <button
+                    <Button
                       key={team.id}
                       type="button"
+                      variant="outline"
                       onClick={() => setTeamId(team.id)}
-                      className={`flex items-center gap-4 border-2 rounded-xl p-4 transition-all duration-200 text-left animate-in fade-in slide-in-from-left-4 ${
+                      className={`flex items-center justify-start gap-4 h-auto rounded-xl p-4 transition-all duration-200 text-left animate-in fade-in slide-in-from-left-4 ${
                         teamId === team.id
-                          ? "shadow-md scale-[1.02]"
-                          : "hover:shadow-sm hover:scale-[1.01] active:scale-[0.99]"
+                          ? "shadow-md scale-[1.02] border-2"
+                          : "hover:shadow-sm hover:scale-[1.01] active:scale-[0.99] border-2"
                       }`}
                       style={{
                         borderColor:
@@ -191,7 +220,7 @@ export default function JoinPage() {
                           ✓
                         </div>
                       )}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -204,9 +233,7 @@ export default function JoinPage() {
               disabled={loading || !canJoin}
               onClick={handleJoin}
               className={`w-full text-lg py-6 font-bold transition-all ${
-                canJoin && selectedTeam
-                  ? "bg-amber-500 hover:bg-amber-600"
-                  : ""
+                canJoin && selectedTeam ? "bg-amber-500 hover:bg-amber-600" : ""
               }`}
               style={
                 canJoin && selectedTeam
