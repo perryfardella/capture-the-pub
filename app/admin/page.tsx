@@ -8,6 +8,7 @@ import { ChallengeTable } from "@/components/admin/ChallengeTable";
 import { TeamTable } from "@/components/admin/TeamTable";
 import { CaptureLog } from "@/components/admin/CaptureLog";
 import { ActivityOverview } from "@/components/admin/ActivityOverview";
+import { PubCoordinatesForm } from "@/components/admin/PubCoordinatesForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,7 @@ type Tab =
   | "teams"
   | "players"
   | "pubs"
+  | "coordinates"
   | "challenges"
   | "captures"
   | "activity";
@@ -210,6 +212,7 @@ export default function AdminPage() {
     { id: "teams", label: "Teams", icon: "👥" },
     { id: "players", label: "Players", icon: "🧑" },
     { id: "pubs", label: "Pubs", icon: "🍺" },
+    { id: "coordinates", label: "Map Setup", icon: "🗺️" },
     { id: "challenges", label: "Challenges", icon: "🎯" },
     { id: "captures", label: "Captures", icon: "📸" },
     { id: "activity", label: "Activity", icon: "📊" },
@@ -418,6 +421,12 @@ export default function AdminPage() {
             teams={teams}
             captures={captures}
             reload={loadData}
+          />
+        )}
+        {tab === "coordinates" && (
+          <PubCoordinatesForm
+            pubs={pubs}
+            onComplete={loadData}
           />
         )}
         {tab === "challenges" && (
