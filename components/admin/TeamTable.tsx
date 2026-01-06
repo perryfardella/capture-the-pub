@@ -28,32 +28,84 @@ export function TeamTable({
   async function addTeam() {
     if (!newTeamName.trim()) return;
     setSaving(true);
-    await supabase.from("teams").insert({
-      name: newTeamName.trim(),
-      color: newTeamColor,
-    });
-    setNewTeamName("");
-    setNewTeamColor("#3B82F6");
-    setShowAddForm(false);
+    
+    try {
+      const response = await fetch("/api/admin/team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newTeamName.trim(), color: newTeamColor }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to add team:", errorText);
+        alert(`Failed to add team: ${errorText}`);
+        setSaving(false);
+        return;
+      }
+      
+      setNewTeamName("");
+      setNewTeamColor("#3B82F6");
+      setShowAddForm(false);
+      reload();
+    } catch (error) {
+      console.error("Error adding team:", error);
+      alert("Failed to add team. Please try again.");
+    }
+    
     setSaving(false);
-    reload();
   }
 
   async function updateTeam(team: Team) {
     setSaving(true);
-    await supabase
-      .from("teams")
-      .update({ name: team.name, color: team.color })
-      .eq("id", team.id);
-    setEditingTeam(null);
+    
+    try {
+      const response = await fetch("/api/admin/team", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId: team.id, name: team.name, color: team.color }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to update team:", errorText);
+        alert(`Failed to update team: ${errorText}`);
+        setSaving(false);
+        return;
+      }
+      
+      setEditingTeam(null);
+      reload();
+    } catch (error) {
+      console.error("Error updating team:", error);
+      alert("Failed to update team. Please try again.");
+    }
+    
     setSaving(false);
-    reload();
   }
 
   async function deleteTeam(teamId: string) {
     if (!confirm("Are you sure? This will affect all players on this team.")) return;
-    await supabase.from("teams").delete().eq("id", teamId);
-    reload();
+    
+    try {
+      const response = await fetch("/api/admin/team", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to delete team:", errorText);
+        alert(`Failed to delete team: ${errorText}`);
+        return;
+      }
+      
+      reload();
+    } catch (error) {
+      console.error("Error deleting team:", error);
+      alert("Failed to delete team. Please try again.");
+    }
   }
 
   const presetColors = [

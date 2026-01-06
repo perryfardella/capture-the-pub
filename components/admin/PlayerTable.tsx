@@ -33,17 +33,49 @@ export function PlayerTable({
   const [filterTeam, setFilterTeam] = useState<string>("all");
 
   async function reassignPlayer(playerId: string, teamId: string) {
-    await supabase
-      .from("players")
-      .update({ team_id: teamId })
-      .eq("id", playerId);
-    reload();
+    try {
+      const response = await fetch("/api/admin/player", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId, teamId }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to reassign player:", errorText);
+        alert(`Failed to reassign player: ${errorText}`);
+        return;
+      }
+      
+      reload();
+    } catch (error) {
+      console.error("Error reassigning player:", error);
+      alert("Failed to reassign player. Please try again.");
+    }
   }
 
   async function deletePlayer(playerId: string, nickname: string) {
     if (!confirm(`Delete player "${nickname}"? This cannot be undone.`)) return;
-    await supabase.from("players").delete().eq("id", playerId);
-    reload();
+    
+    try {
+      const response = await fetch("/api/admin/player", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to delete player:", errorText);
+        alert(`Failed to delete player: ${errorText}`);
+        return;
+      }
+      
+      reload();
+    } catch (error) {
+      console.error("Error deleting player:", error);
+      alert("Failed to delete player. Please try again.");
+    }
   }
 
   const filteredPlayers = players.filter((player) => {

@@ -51,71 +51,194 @@ export function PubTable({
   async function addPub() {
     if (!newPubName.trim()) return;
     setSaving(true);
-    await supabase.from("pubs").insert({
-      name: newPubName.trim(),
-    });
-    setNewPubName("");
-    setShowAddForm(false);
+    
+    try {
+      const response = await fetch("/api/admin/pub", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newPubName.trim() }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to add pub:", errorText);
+        alert(`Failed to add pub: ${errorText}`);
+        setSaving(false);
+        return;
+      }
+      
+      setNewPubName("");
+      setShowAddForm(false);
+      reload();
+    } catch (error) {
+      console.error("Error adding pub:", error);
+      alert("Failed to add pub. Please try again.");
+    }
+    
     setSaving(false);
-    reload();
   }
 
   async function updatePub(pub: Pub) {
     setSaving(true);
-    await supabase
-      .from("pubs")
-      .update({ name: pub.name })
-      .eq("id", pub.id);
-    setEditingPub(null);
+    
+    try {
+      const response = await fetch("/api/admin/pub", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          pubId: pub.id, 
+          name: pub.name,
+          action: "update_name"
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to update pub:", errorText);
+        alert(`Failed to update pub: ${errorText}`);
+        setSaving(false);
+        return;
+      }
+      
+      setEditingPub(null);
+      reload();
+    } catch (error) {
+      console.error("Error updating pub:", error);
+      alert("Failed to update pub. Please try again.");
+    }
+    
     setSaving(false);
-    reload();
   }
 
   async function deletePub(pubId: string, pubName: string) {
     if (!confirm(`Delete pub "${pubName}"? This will also delete all capture history.`)) return;
-    // Delete related captures first
-    await supabase.from("captures").delete().eq("pub_id", pubId);
-    await supabase.from("pubs").delete().eq("id", pubId);
-    reload();
+    
+    try {
+      const response = await fetch("/api/admin/pub", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pubId }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to delete pub:", errorText);
+        alert(`Failed to delete pub: ${errorText}`);
+        return;
+      }
+      
+      reload();
+    } catch (error) {
+      console.error("Error deleting pub:", error);
+      alert("Failed to delete pub. Please try again.");
+    }
   }
 
   async function toggleLock(pubId: string, currentlyLocked: boolean) {
-    await supabase
-      .from("pubs")
-      .update({ is_locked: !currentlyLocked })
-      .eq("id", pubId);
-    reload();
+    try {
+      const response = await fetch("/api/admin/pub", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          pubId,
+          is_locked: !currentlyLocked,
+          action: "toggle_lock"
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to toggle lock:", errorText);
+        alert(`Failed to toggle lock: ${errorText}`);
+        return;
+      }
+      
+      reload();
+    } catch (error) {
+      console.error("Error toggling lock:", error);
+      alert("Failed to toggle lock. Please try again.");
+    }
   }
 
   async function changeOwner(pubId: string, teamId: string | null) {
-    await supabase
-      .from("pubs")
-      .update({ controlling_team_id: teamId || null })
-      .eq("id", pubId);
-    reload();
+    try {
+      const response = await fetch("/api/admin/pub", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          pubId,
+          controlling_team_id: teamId || null,
+          action: "change_owner"
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to change owner:", errorText);
+        alert(`Failed to change owner: ${errorText}`);
+        return;
+      }
+      
+      reload();
+    } catch (error) {
+      console.error("Error changing owner:", error);
+      alert("Failed to change owner. Please try again.");
+    }
   }
 
   async function resetPub(pubId: string, pubName: string) {
     if (!confirm(`Reset "${pubName}"? This will clear ownership, drink count, and lock status.`)) return;
-    await supabase
-      .from("pubs")
-      .update({
-        controlling_team_id: null,
-        drink_count: 0,
-        is_locked: false,
-        locked_by_team_id: null,
-      })
-      .eq("id", pubId);
-    reload();
+    
+    try {
+      const response = await fetch("/api/admin/pub", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          pubId,
+          action: "reset"
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to reset pub:", errorText);
+        alert(`Failed to reset pub: ${errorText}`);
+        return;
+      }
+      
+      reload();
+    } catch (error) {
+      console.error("Error resetting pub:", error);
+      alert("Failed to reset pub. Please try again.");
+    }
   }
 
   async function setDrinkCount(pubId: string, count: number) {
     if (count < 0) return;
-    await supabase
-      .from("pubs")
-      .update({ drink_count: count })
-      .eq("id", pubId);
-    reload();
+    
+    try {
+      const response = await fetch("/api/admin/pub", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          pubId,
+          drink_count: count,
+          action: "set_drink_count"
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to set drink count:", errorText);
+        alert(`Failed to set drink count: ${errorText}`);
+        return;
+      }
+      
+      reload();
+    } catch (error) {
+      console.error("Error setting drink count:", error);
+      alert("Failed to set drink count. Please try again.");
+    }
   }
 
   // Count captures per pub
