@@ -141,9 +141,14 @@ export function CaptureDialog({
           {success ? "🎉 Captured!" : `Capture ${pubName}`}
         </DialogTitle>
         <DialogDescription className="text-center">
-          {success
-            ? "Nice one! The pub is yours."
-            : `Drink #${nextDrinkCount} required. Snap a photo to claim it.`}
+          {success ? (
+            "Nice one! The pub is yours."
+          ) : (
+            <>
+              <b>{nextDrinkCount}</b> drink(s) required to capture this pub.
+              Snap a photo of you with them to claim it.
+            </>
+          )}
         </DialogDescription>
 
         <div className="space-y-4 pt-2">
