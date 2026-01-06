@@ -44,8 +44,8 @@ export default function Home() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [playersByTeam, setPlayersByTeam] = useState<Record<string, any[]>>({});
   const [activeTab, setActiveTab] = useState<
-    "pubs" | "map" | "scoreboard" | "activity" | "challenges"
-  >("pubs");
+    "map" | "scoreboard" | "activity" | "challenges"
+  >("map");
 
   // Secret admin access - tap beer emoji 5 times quickly
   const secretTapCountRef = useRef(0);
@@ -275,7 +275,6 @@ export default function Home() {
   if (!player) return null; // Prevent rendering before redirect completes
 
   const tabs = [
-    { id: "pubs" as const, label: "Pubs", icon: "📍" },
     { id: "map" as const, label: "Map", icon: "🗺️" },
     { id: "scoreboard" as const, label: "Scores", icon: "🏆" },
     { id: "activity" as const, label: "Feed", icon: "📸" },
@@ -338,7 +337,6 @@ export default function Home() {
       )}
 
       <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === "pubs" && <PubList pubs={pubs} teams={teams} playerTeamId={player?.team_id} />}
         {activeTab === "map" && <TerritorialMap pubs={pubs} teams={teams} playerTeamId={player?.team_id} />}
         {activeTab === "scoreboard" && (
           <Scoreboard
