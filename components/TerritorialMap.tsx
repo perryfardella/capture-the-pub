@@ -185,7 +185,7 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
         territories.push({
           pubId: pub.id,
           polygon,
-          color: team?.color || '#666666',
+          color: team?.color || '#f8f9fa',
           teamName: team?.name,
         });
       }
@@ -388,16 +388,10 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
                 
                 {pub.challenge && (
                   <div className="bg-amber-50 border border-amber-200 rounded p-2">
-                    <div className="flex items-center justify-center gap-1 mb-1">
+                    <div className="flex items-center justify-center gap-1">
                       <span>🎯</span>
                       <span className="text-xs font-medium text-amber-800">Challenge Available</span>
                     </div>
-                    <p className="text-xs text-amber-700">{pub.challenge.description}</p>
-                    {pub.controlling_team_id !== playerTeamId && (
-                      <p className="text-xs text-amber-600 mt-1 italic">
-                        Must control pub to attempt
-                      </p>
-                    )}
                   </div>
                 )}
                 
