@@ -1,21 +1,30 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polygon, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Polygon,
+  useMap,
+} from "react-leaflet";
 import { Delaunay } from "d3-delaunay";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { CaptureDialog } from "./CaptureDialog";
 import { ChallengeDialog } from "./ChallengeDialog";
-import { Button } from "./ui/button";
 import { useGameState } from "@/lib/hooks/useGameState";
 
 // Fix for default markers in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
 interface Team {
@@ -60,13 +69,13 @@ function MapBoundsHandler({ pubs }: { pubs: Pub[] }) {
   useEffect(() => {
     if (pubs.length === 0) return;
 
-    const pubsWithCoords = pubs.filter(p => p.latitude && p.longitude);
+    const pubsWithCoords = pubs.filter((p) => p.latitude && p.longitude);
     if (pubsWithCoords.length === 0) return;
 
     const bounds = L.latLngBounds(
-      pubsWithCoords.map(pub => [pub.latitude, pub.longitude])
+      pubsWithCoords.map((pub) => [pub.latitude, pub.longitude])
     );
-    
+
     // Add some padding around the bounds
     map.fitBounds(bounds, { padding: [20, 20] });
   }, [map, pubs]);
@@ -74,17 +83,25 @@ function MapBoundsHandler({ pubs }: { pubs: Pub[] }) {
   return null;
 }
 
-export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProps) {
+export function TerritorialMap({
+  pubs,
+  teams,
+  playerTeamId,
+}: TerritorialMapProps) {
   const { isActive } = useGameState();
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | 'unsupported'>('prompt');
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(
+    null
+  );
+  const [locationPermission, setLocationPermission] = useState<
+    "granted" | "denied" | "prompt" | "unsupported"
+  >("prompt");
 
   // Add popup styles on component mount
   useEffect(() => {
-    if (typeof document !== 'undefined') {
-      const styleId = 'territorial-map-popup-styles';
+    if (typeof document !== "undefined") {
+      const styleId = "territorial-map-popup-styles";
       if (!document.getElementById(styleId)) {
-        const styleElement = document.createElement('style');
+        const styleElement = document.createElement("style");
         styleElement.id = styleId;
         styleElement.textContent = `
           .custom-popup .leaflet-popup-content {
@@ -118,20 +135,20 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
 
   // Get user location
   useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setLocationPermission('unsupported');
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setLocationPermission("unsupported");
       return;
     }
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         setUserLocation([position.coords.latitude, position.coords.longitude]);
-        setLocationPermission('granted');
+        setLocationPermission("granted");
       },
       (error) => {
-        console.error('Error getting location:', error);
+        console.error("Error getting location:", error);
         if (error.code === error.PERMISSION_DENIED) {
-          setLocationPermission('denied');
+          setLocationPermission("denied");
         }
       },
       {
@@ -149,8 +166,15 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
   }, []);
 
   // Filter pubs with valid coordinates
-  const pubsWithCoords = useMemo(() => 
-    pubs.filter(pub => pub.latitude && pub.longitude && !isNaN(pub.latitude) && !isNaN(pub.longitude)),
+  const pubsWithCoords = useMemo(
+    () =>
+      pubs.filter(
+        (pub) =>
+          pub.latitude &&
+          pub.longitude &&
+          !isNaN(pub.latitude) &&
+          !isNaN(pub.longitude)
+      ),
     [pubs]
   );
 
@@ -160,32 +184,35 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
 
     try {
       // Create points array [x, y] for Delaunay
-      const points = pubsWithCoords.map(pub => [pub.longitude, pub.latitude]);
-      
+      const points = pubsWithCoords.map((pub) => [pub.longitude, pub.latitude]);
+
       // Create Delaunay triangulation
       const delaunay = Delaunay.from(points);
-      
+
       // Get Voronoi diagram
-      const voronoi = delaunay.voronoi([115.739, -32.061, 115.751, -32.052]); // Updated bounds for tighter Fremantle area
-      
+      const voronoi = delaunay.voronoi([115.73875, -32.06, 115.7505, -32.053]); // Adjusted width by 2% wider
+
       const territories: Territory[] = [];
 
       for (let i = 0; i < pubsWithCoords.length; i++) {
         const pub = pubsWithCoords[i];
         const cell = voronoi.cellPolygon(i);
-        
+
         if (!cell) continue;
 
         // Convert from [lng, lat] to [lat, lng] for Leaflet
-        const polygon: [number, number][] = cell.map(([lng, lat]) => [lat, lng]);
-        
+        const polygon: [number, number][] = cell.map(([lng, lat]) => [
+          lat,
+          lng,
+        ]);
+
         // Get team info
-        const team = teams.find(t => t.id === pub.controlling_team_id);
-        
+        const team = teams.find((t) => t.id === pub.controlling_team_id);
+
         territories.push({
           pubId: pub.id,
           polygon,
-          color: team?.color || '#f8f9fa',
+          color: team?.color || "#f8f9fa",
           teamName: team?.name,
         });
       }
@@ -224,7 +251,7 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
 
     return L.divIcon({
       html: iconHtml,
-      className: 'user-location-marker',
+      className: "user-location-marker",
       iconSize: [20, 20],
       iconAnchor: [10, 10],
     });
@@ -232,10 +259,10 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
 
   // Create custom markers based on pub status
   const createPubIcon = (pub: Pub) => {
-    const team = teams.find(t => t.id === pub.controlling_team_id);
-    const color = team?.color || '#666666';
+    const team = teams.find((t) => t.id === pub.controlling_team_id);
+    const color = team?.color || "#666666";
     const isLocked = pub.is_locked;
-    
+
     const iconHtml = `
       <div style="
         width: 30px;
@@ -250,7 +277,7 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         position: relative;
       ">
-        ${isLocked ? '🔒' : '🍺'}
+        ${isLocked ? "🔒" : "🍺"}
         <div style="
           position: absolute;
           bottom: -8px;
@@ -274,12 +301,11 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
 
     return L.divIcon({
       html: iconHtml,
-      className: 'custom-pub-marker',
+      className: "custom-pub-marker",
       iconSize: [30, 30],
       iconAnchor: [15, 15],
     });
   };
-
 
   // Default center on Fremantle
   const center: [number, number] = [-31.9554, 115.7499];
@@ -290,7 +316,9 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
         <div className="text-center text-slate-400">
           <div className="text-4xl mb-3">🗺️</div>
           <p>No pub coordinates available</p>
-          <p className="text-sm mt-1">Add coordinates in the admin panel to see the territorial map</p>
+          <p className="text-sm mt-1">
+            Add coordinates in the admin panel to see the territorial map
+          </p>
         </div>
       </div>
     );
@@ -310,7 +338,7 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        
+
         <MapBoundsHandler pubs={pubsWithCoords} />
 
         {/* Render territories */}
@@ -322,18 +350,15 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
               fillColor: territory.color,
               fillOpacity: 0.3,
               color: territory.color,
-              weight: 2,
-              opacity: 0.8,
+              weight: 1,
+              opacity: 0.6,
             }}
           />
         ))}
 
         {/* Render user location marker */}
         {userLocation && (
-          <Marker
-            position={userLocation}
-            icon={createUserLocationIcon()}
-          >
+          <Marker position={userLocation} icon={createUserLocationIcon()}>
             <Popup>
               <div className="text-center p-1">
                 <div className="text-sm font-medium">📍 Your Location</div>
@@ -363,38 +388,47 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
                     {pub.drink_count} drinks
                     {pub.is_locked && " • 🔒 Locked"}
                   </div>
-                  
+
                   {pub.controlling_team_id && (
                     <div className="mt-2">
-                      <span className="text-xs text-gray-500">Controlled by:</span>
-                      <div 
+                      <span className="text-xs text-gray-500">
+                        Controlled by:
+                      </span>
+                      <div
                         className="inline-block ml-1 px-2 py-1 rounded text-xs font-medium"
                         style={{
-                          backgroundColor: teams.find(t => t.id === pub.controlling_team_id)?.color + "20",
-                          color: teams.find(t => t.id === pub.controlling_team_id)?.color,
+                          backgroundColor:
+                            teams.find((t) => t.id === pub.controlling_team_id)
+                              ?.color + "20",
+                          color: teams.find(
+                            (t) => t.id === pub.controlling_team_id
+                          )?.color,
                         }}
                       >
-                        {teams.find(t => t.id === pub.controlling_team_id)?.name || 'Unknown Team'}
+                        {teams.find((t) => t.id === pub.controlling_team_id)
+                          ?.name || "Unknown Team"}
                       </div>
                     </div>
                   )}
-                  
+
                   {!pub.controlling_team_id && !pub.is_locked && (
                     <div className="text-xs text-gray-500 italic mt-1">
                       Unclaimed pub - capture it!
                     </div>
                   )}
                 </div>
-                
+
                 {pub.challenge && (
                   <div className="bg-amber-50 border border-amber-200 rounded p-2">
                     <div className="flex items-center justify-center gap-1">
                       <span>🎯</span>
-                      <span className="text-xs font-medium text-amber-800">Challenge Available</span>
+                      <span className="text-xs font-medium text-amber-800">
+                        Challenge Available
+                      </span>
                     </div>
                   </div>
                 )}
-                
+
                 <div className="flex flex-col gap-2">
                   {!pub.is_locked && (
                     <CaptureDialog
@@ -405,7 +439,7 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
                       triggerClassName="w-full text-xs py-1 px-2"
                     />
                   )}
-                  
+
                   {pub.challenge && !pub.is_locked && (
                     <ChallengeDialog
                       challengeId={pub.challenge.id}
@@ -413,18 +447,20 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
                       pubId={pub.id}
                       pubName={pub.name}
                       description={pub.challenge.description}
-                      disabled={!isActive || playerTeamId !== pub.controlling_team_id}
+                      disabled={
+                        !isActive || playerTeamId !== pub.controlling_team_id
+                      }
                       playerTeamId={playerTeamId}
                     />
                   )}
-                  
+
                   {pub.is_locked && (
                     <div className="w-full text-center py-1 text-xs text-gray-500 bg-gray-100 rounded">
                       🔒 Permanently Locked
                     </div>
                   )}
                 </div>
-                
+
                 {!isActive && (
                   <div className="text-xs text-red-600 bg-red-50 p-1 rounded">
                     Game is currently inactive
@@ -437,30 +473,33 @@ export function TerritorialMap({ pubs, teams, playerTeamId }: TerritorialMapProp
       </MapContainer>
 
       {/* Location status indicator */}
-      {locationPermission === 'denied' && (
+      {locationPermission === "denied" && (
         <div className="absolute top-4 left-4 right-4 bg-yellow-100 border border-yellow-300 rounded-lg p-3 shadow-sm">
           <div className="flex items-center gap-2 text-yellow-800">
             <span>📍</span>
             <div>
               <div className="font-medium text-sm">Location access denied</div>
-              <div className="text-xs">Enable location in browser settings to see your position</div>
+              <div className="text-xs">
+                Enable location in browser settings to see your position
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {locationPermission === 'unsupported' && (
+      {locationPermission === "unsupported" && (
         <div className="absolute top-4 left-4 right-4 bg-gray-100 border border-gray-300 rounded-lg p-3 shadow-sm">
           <div className="flex items-center gap-2 text-gray-700">
             <span>⚠️</span>
             <div>
               <div className="font-medium text-sm">Location not supported</div>
-              <div className="text-xs">Your browser doesn't support location services</div>
+              <div className="text-xs">
+                Your browser doesn't support location services
+              </div>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
