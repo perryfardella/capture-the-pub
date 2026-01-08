@@ -325,7 +325,7 @@ export function TerritorialMap({
   }
 
   return (
-    <div className="relative h-[80vh] w-full rounded-lg overflow-hidden">
+    <div className="relative h-[75vh] w-full rounded-lg overflow-hidden">
       <MapContainer
         center={center}
         zoom={15}
