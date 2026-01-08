@@ -111,7 +111,7 @@ export function getVideoDuration(file: File): Promise<number> {
 export async function validateVideo(
   file: File,
   maxDurationSeconds: number = 60,
-  maxSizeMB: number = 100
+  maxSizeMB: number = 500
 ): Promise<{ valid: boolean; error?: string }> {
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
