@@ -2,6 +2,7 @@
 
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { ChallengeDialog } from "@/components/ChallengeDialog";
+import { PubList } from "@/components/PubList";
 import { Scoreboard } from "@/components/Scoreboard";
 import dynamic from "next/dynamic";
 
@@ -22,24 +23,26 @@ import { PushNotificationDebug } from "@/components/PushNotificationDebug";
 import { useGameState } from "@/lib/hooks/useGameState";
 import { useOffline } from "@/lib/hooks/useOffline";
 import { usePlayer } from "@/lib/hooks/usePlayer";
-import { useRealtimeManager } from "@/lib/hooks/useRealtimeManager";
+import { useRealtimeGame } from "@/lib/hooks/useRealtimeGame";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const { player, loading } = usePlayer();
-  const { 
-    pubs, 
-    captures, 
-    bonusPoints, 
-    teams, 
-    playersByTeam, 
-    challenges: globalChallenges, 
-    challengeAttempts, 
-    isLoading: gameDataLoading 
-  } = useRealtimeManager();
+  const { pubs, captures, bonusPoints, teams } = useRealtimeGame();
   const offline = useOffline();
   const { isActive } = useGameState();
+  // TODO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [globalChallenges, setGlobalChallenges] = useState<any[]>([]);
+  // TODO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [challengeAttempts, setChallengeAttempts] = useState<any[]>([]);
+  // TODO
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [playersByTeam, setPlayersByTeam] = useState<Record<string, any[]>>({});
   const [activeTab, setActiveTab] = useState<
     "map" | "scoreboard" | "activity" | "challenges"
   >("map");
@@ -69,37 +72,196 @@ export default function Home() {
     }, 2000);
   }, []);
 
-  // Memoize expensive feed merging calculation
-  const feed = useMemo(() => {
-    const processedChallengeAttempts = challengeAttempts.map((attempt) => {
-      const challenge = attempt.challenges;
-      const pub = challenge?.pub_id
-        ? pubs.find((p) => p.id === challenge.pub_id)
-        : null;
-      return {
-        ...attempt,
-        type: "challenge",
-        pubName: pub?.name || null,
-        challengeDescription: challenge?.description || null,
-      };
-    });
+  useEffect(() => {
+    async function loadGlobalChallenges() {
+      const supabase = createSupabaseBrowserClient();
+      // Load all global challenges (not filtered by is_consumed)
+      const { data } = await supabase
+        .from("challenges")
+        .select("*")
+        .eq("type", "global");
+      setGlobalChallenges(data ?? []);
+    }
 
-    return [
-      ...captures.map((c) => {
-        const pub = pubs.find((p) => p.id === c.pub_id);
-        return { ...c, type: "capture", pubName: pub?.name || c.pub_id };
-      }),
-      ...processedChallengeAttempts,
-      ...bonusPoints.map((b) => ({
-        ...b,
-        type: "bonus",
-        challengeDescription: b.challenges?.description || null,
-      })),
-    ].sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  }, [captures, challengeAttempts, bonusPoints, pubs]);
+    loadGlobalChallenges();
+
+    // Subscribe to global challenges updates
+    const supabase = createSupabaseBrowserClient();
+    const challengesChannel = supabase
+      .channel("realtime-global-challenges")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "challenges",
+          filter: "type=eq.global",
+        },
+        () => {
+          loadGlobalChallenges();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(challengesChannel);
+    };
+  }, [player?.team_id]);
+
+  useEffect(() => {
+
+    async function loadPlayers() {
+      const supabase = createSupabaseBrowserClient();
+      const { data } = await supabase
+        .from("players")
+        .select("id, nickname, team_id")
+        .order("nickname");
+
+      if (data) {
+        const grouped = data.reduce((acc, player) => {
+          const teamId = String(player.team_id);
+          if (!acc[teamId]) {
+            acc[teamId] = [];
+          }
+          acc[teamId].push(player);
+          return acc;
+        }, {} as Record<string, typeof data>);
+        setPlayersByTeam(grouped);
+      }
+    }
+
+    loadPlayers();
+
+    // Subscribe to players updates
+    const supabase = createSupabaseBrowserClient();
+    const playersChannel = supabase
+      .channel("realtime-players")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "players" },
+        async () => {
+          // Reload all players when any change occurs
+          const { data } = await supabase
+            .from("players")
+            .select("id, nickname, team_id")
+            .order("nickname");
+
+          if (data) {
+            const grouped = data.reduce((acc, player) => {
+              const teamId = String(player.team_id);
+              if (!acc[teamId]) {
+                acc[teamId] = [];
+              }
+              acc[teamId].push(player);
+              return acc;
+            }, {} as Record<string, typeof data>);
+            setPlayersByTeam(grouped);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(playersChannel);
+    };
+  }, []);
+
+  // Load challenge attempts for activity feed
+  // Filter out global challenge result attempts (they're shown via bonus_points instead)
+  useEffect(() => {
+    async function loadChallengeAttempts() {
+      const supabase = createSupabaseBrowserClient();
+      const { data: attempts } = await supabase
+        .from("challenge_attempts")
+        .select("*, teams(*), challenges(*), players(*)");
+
+      if (attempts) {
+        const attemptsWithPubNames = attempts
+          .filter((attempt) => {
+            // Filter out global challenge result attempts (shown via bonus_points)
+            const challenge = attempt.challenges;
+            return !(challenge?.type === "global" && attempt.step === "result");
+          })
+          .map((attempt) => {
+            const challenge = attempt.challenges;
+            const pub = challenge?.pub_id
+              ? pubs.find((p) => p.id === challenge.pub_id)
+              : null;
+            return {
+              ...attempt,
+              type: "challenge",
+              pubName: pub?.name || null,
+              challengeDescription: challenge?.description || null,
+            };
+          });
+        setChallengeAttempts(attemptsWithPubNames);
+      }
+    }
+
+    loadChallengeAttempts();
+
+    // Subscribe to challenge attempts updates
+    const supabase = createSupabaseBrowserClient();
+    const attemptsChannel = supabase
+      .channel("realtime-challenge-attempts")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "challenge_attempts" },
+        async (payload) => {
+          if (payload.eventType === "INSERT") {
+            // Fetch team, challenge, and player data for new attempt
+            const { data: attempt } = await supabase
+              .from("challenge_attempts")
+              .select("*, teams(*), challenges(*), players(*)")
+              .eq("id", (payload.new as unknown as { id: string }).id)
+              .single();
+
+            if (attempt) {
+              const challenge = attempt.challenges;
+              // Filter out global challenge result attempts (shown via bonus_points)
+              if (challenge?.type === "global" && attempt.step === "result") {
+                return;
+              }
+              const pub = challenge?.pub_id
+                ? pubs.find((p) => p.id === challenge.pub_id)
+                : null;
+              setChallengeAttempts((prev) => [
+                {
+                  ...attempt,
+                  type: "challenge",
+                  pubName: pub?.name || null,
+                  challengeDescription: challenge?.description || null,
+                },
+                ...prev,
+              ]);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(attemptsChannel);
+    };
+  }, [pubs]);
+
+  // Merge feed items with pub names
+  // Include challenge data with bonus points
+  const feed = [
+    ...captures.map((c) => {
+      const pub = pubs.find((p) => p.id === c.pub_id);
+      return { ...c, type: "capture", pubName: pub?.name || c.pub_id };
+    }),
+    ...challengeAttempts,
+    ...bonusPoints.map((b) => ({
+      ...b,
+      type: "bonus",
+      challengeDescription: b.challenges?.description || null,
+    })),
+  ].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 
   const router = useRouter();
 
@@ -109,7 +271,7 @@ export default function Home() {
     }
   }, [loading, player, router]);
 
-  if (loading || gameDataLoading) return null;
+  if (loading) return null;
   if (!player) return null; // Prevent rendering before redirect completes
 
   const tabs = [
