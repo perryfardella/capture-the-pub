@@ -24,6 +24,7 @@ export function ChallengeDialog({
   onSuccess,
   playerTeamId,
   completedByTeamId,
+  triggerClassName,
 }: {
   challengeId: string;
   challengeType: "pub" | "global";
@@ -34,6 +35,7 @@ export function ChallengeDialog({
   onSuccess?: () => void;
   playerTeamId?: string;
   completedByTeamId?: string;
+  triggerClassName?: string;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
@@ -320,7 +322,7 @@ export function ChallengeDialog({
       <DialogTrigger asChild>
         <Button
           disabled={Boolean(disabled || isTeamCompleted)}
-          className="w-full"
+          className={triggerClassName || "w-full"}
         >
           🎯 Challenge
         </Button>

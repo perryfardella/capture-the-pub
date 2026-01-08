@@ -465,6 +465,7 @@ export function TerritorialMap({
                         !isActive || playerTeamId !== pub.controlling_team_id
                       }
                       playerTeamId={playerTeamId}
+                      triggerClassName="w-full text-xs py-1 px-2"
                     />
                   )}
 

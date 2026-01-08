@@ -132,7 +132,7 @@ export function CaptureDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button disabled={disabled} className={triggerClassName}>
-          Capture
+          🍺 Capture
         </Button>
       </DialogTrigger>
 
