@@ -178,7 +178,15 @@ export function TerritorialMap({
     [pubs]
   );
 
-  // Calculate Voronoi territories
+  // Memoize team colors map for efficiency
+  const teamColorsMap = useMemo(() => {
+    return teams.reduce((acc, team) => {
+      acc[team.id] = team.color;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [teams]);
+
+  // Calculate Voronoi territories with optimized memoization
   const territories = useMemo(() => {
     if (pubsWithCoords.length < 3) return []; // Need at least 3 points for Voronoi
 
@@ -206,14 +214,14 @@ export function TerritorialMap({
           lng,
         ]);
 
-        // Get team info
-        const team = teams.find((t) => t.id === pub.controlling_team_id);
-
         territories.push({
           pubId: pub.id,
           polygon,
-          color: team?.color || "#f8f9fa",
-          teamName: team?.name,
+          color:
+            (pub.controlling_team_id
+              ? teamColorsMap[pub.controlling_team_id]
+              : null) || "#f8f9fa",
+          teamName: teams.find((t) => t.id === pub.controlling_team_id)?.name,
         });
       }
 
@@ -222,7 +230,7 @@ export function TerritorialMap({
       console.error("Error creating Voronoi territories:", error);
       return [];
     }
-  }, [pubsWithCoords, teams]);
+  }, [pubsWithCoords, teamColorsMap, teams]);
 
   // Create custom user location marker
   const createUserLocationIcon = () => {
@@ -257,55 +265,61 @@ export function TerritorialMap({
     });
   };
 
-  // Create custom markers based on pub status
-  const createPubIcon = (pub: Pub) => {
-    const team = teams.find((t) => t.id === pub.controlling_team_id);
-    const color = team?.color || "#666666";
-    const isLocked = pub.is_locked;
+  // Memoize pub icons to avoid recreation on every render
+  const pubIcons = useMemo(() => {
+    return pubsWithCoords.reduce((acc, pub) => {
+      const color =
+        (pub.controlling_team_id
+          ? teamColorsMap[pub.controlling_team_id]
+          : null) || "#666666";
+      const isLocked = pub.is_locked;
 
-    const iconHtml = `
-      <div style="
-        width: 30px;
-        height: 30px;
-        background-color: ${color};
-        border: 3px solid white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        position: relative;
-      ">
-        ${isLocked ? "🔒" : "🍺"}
+      const iconHtml = `
         <div style="
-          position: absolute;
-          bottom: -8px;
-          right: -8px;
-          background: white;
-          border: 2px solid ${color};
+          width: 30px;
+          height: 30px;
+          background-color: ${color};
+          border: 3px solid white;
           border-radius: 50%;
-          width: 20px;
-          height: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 10px;
-          font-weight: bold;
-          color: ${color};
+          font-size: 14px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          position: relative;
         ">
-          ${pub.drink_count}
+          ${isLocked ? "🔒" : "🍺"}
+          <div style="
+            position: absolute;
+            bottom: -8px;
+            right: -8px;
+            background: white;
+            border: 2px solid ${color};
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: ${color};
+          ">
+            ${pub.drink_count}
+          </div>
         </div>
-      </div>
-    `;
+      `;
 
-    return L.divIcon({
-      html: iconHtml,
-      className: "custom-pub-marker",
-      iconSize: [30, 30],
-      iconAnchor: [15, 15],
-    });
-  };
+      acc[pub.id] = L.divIcon({
+        html: iconHtml,
+        className: "custom-pub-marker",
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+      });
+
+      return acc;
+    }, {} as Record<string, L.DivIcon>);
+  }, [pubsWithCoords, teamColorsMap]);
 
   // Default center on Fremantle
   const center: [number, number] = [-31.9554, 115.7499];
@@ -375,7 +389,7 @@ export function TerritorialMap({
           <Marker
             key={pub.id}
             position={[pub.latitude, pub.longitude]}
-            icon={createPubIcon(pub)}
+            icon={pubIcons[pub.id]}
           >
             <Popup className="custom-popup" minWidth={200}>
               <div className="space-y-3 text-center min-w-0">
@@ -494,7 +508,7 @@ export function TerritorialMap({
             <div>
               <div className="font-medium text-sm">Location not supported</div>
               <div className="text-xs">
-                Your browser doesn't support location services
+                Your browser doesn&apos;t support location services
               </div>
             </div>
           </div>
