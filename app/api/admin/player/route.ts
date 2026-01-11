@@ -36,6 +36,15 @@ export async function DELETE(req: Request) {
       return new NextResponse("Player ID is required", { status: 400 });
     }
 
+    // Delete player's push subscriptions first (not a foreign key, so we handle it manually)
+    await supabase
+      .from("push_subscriptions")
+      .delete()
+      .eq("player_id", playerId);
+
+    // Delete the player
+    // Note: Foreign keys on captures, challenge_attempts, and bonus_points
+    // are set to ON DELETE SET NULL, so historical records are preserved
     const { error } = await supabase
       .from("players")
       .delete()
