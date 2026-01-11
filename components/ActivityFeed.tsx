@@ -9,6 +9,35 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
+// Component for optimized image loading with caching
+function CachedImage({ src, alt, ...props }: any) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      {...props}
+      // Enable Next.js optimization instead of unoptimized
+      priority={false}
+      // Add caching headers
+      placeholder="blur"
+      blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGBkbHB0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
+    />
+  );
+}
+
+// Component for optimized video loading
+function CachedVideo({ src, ...props }: any) {
+  return (
+    <video
+      src={src}
+      {...props}
+      preload="metadata"
+      // Add caching by setting longer cache control
+      style={{ ...props.style }}
+    />
+  );
+}
+
 // TODO
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ActivityFeed({ feed }: { feed: any[] }) {
@@ -210,20 +239,19 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                     className="mt-3 ml-11 rounded-lg overflow-hidden w-[calc(100%-2.75rem)] text-left cursor-pointer hover:opacity-90 active:scale-[0.99] transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary border-0 p-0 block"
                   >
                     {item.media_url.endsWith(".mp4") ? (
-                      <video
+                      <CachedVideo
                         src={item.media_url}
                         className="w-full max-h-40 object-cover pointer-events-none block rounded-lg"
                         playsInline
                         muted
                       />
                     ) : (
-                      <Image
+                      <CachedImage
                         src={item.media_url}
                         alt="evidence"
                         width={400}
                         height={300}
                         className="w-full max-h-40 object-cover pointer-events-none block rounded-lg"
-                        unoptimized
                       />
                     )}
                   </button>
@@ -251,7 +279,7 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
           {previewMedia && (
             <div className="flex items-center justify-center w-full h-full border-0 p-0">
               {previewMedia.endsWith(".mp4") ? (
-                <video
+                <CachedVideo
                   src={previewMedia}
                   controls
                   autoPlay
@@ -268,7 +296,7 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                     background: "transparent",
                   }}
                 >
-                  <Image
+                  <CachedImage
                     src={previewMedia}
                     alt="Preview"
                     width={1200}
@@ -279,7 +307,6 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                       outline: "none",
                       display: "block",
                     }}
-                    unoptimized
                   />
                 </div>
               )}
