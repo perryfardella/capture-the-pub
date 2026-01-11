@@ -71,7 +71,7 @@ self.addEventListener("push", function (event) {
           vibrate: [200, 100, 200],
           tag: data.tag || "game-update",
           data: data.data || {},
-          requireInteraction: false, // Changed to false - let notifications auto-dismiss
+          requireInteraction: true, // Keep notification visible until user dismisses (critical for PWA)
           silent: false, // Ensure sound/vibration works
           timestamp: Date.now(),
           renotify: true, // Show notification even if one with same tag exists
@@ -89,7 +89,7 @@ self.addEventListener("push", function (event) {
             body: "New game update",
             icon: "/manifest-icon-192.maskable.png",
             // Omit badge - system will use app icon
-            requireInteraction: false,
+            requireInteraction: true,
             silent: false,
           });
           console.log("Default notification displayed");

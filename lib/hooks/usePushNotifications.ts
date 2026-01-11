@@ -38,32 +38,36 @@ export function usePushNotifications() {
 
     // Check if already subscribed
     if (isSupported && "serviceWorker" in navigator) {
-      // Check service worker and subscription (following Next.js PWA guide)
+      // Check service worker and subscription
+      // Note: Service worker registration is handled by ServiceWorkerRegistration component
       const checkServiceWorker = async () => {
         try {
-          // Get existing registration or register
-          let registration = await navigator.serviceWorker.getRegistration();
-          
+          // Wait for existing registration (should be registered by ServiceWorkerRegistration component)
+          const registration = await navigator.serviceWorker.ready;
+
           if (!registration) {
-            // Register service worker
-            registration = await navigator.serviceWorker.register("/sw.js", {
-              scope: "/",
-              updateViaCache: "none",
-            });
+            console.warn("[usePushNotifications] No service worker registration found");
+            return;
           }
-          
-          await navigator.serviceWorker.ready;
+
+          console.log("[usePushNotifications] Service worker ready, checking subscription");
+
           const subscription = await registration.pushManager.getSubscription();
           setState((prev) => ({
             ...prev,
             subscription,
             isSubscribed: !!subscription,
           }));
+
+          console.log(
+            "[usePushNotifications] Subscription status:",
+            !!subscription
+          );
         } catch (err) {
-          console.warn("Error checking subscription:", err);
+          console.warn("[usePushNotifications] Error checking subscription:", err);
         }
       };
-      
+
       // Run after page load
       if (document.readyState === "complete") {
         checkServiceWorker();
@@ -133,30 +137,33 @@ export function usePushNotifications() {
       }
 
       try {
-        // Ensure service worker is registered first
-        let registration = await navigator.serviceWorker.getRegistration();
+        console.log("[usePushNotifications] Starting subscription process...");
+
+        // Wait for service worker to be ready (should already be registered by ServiceWorkerRegistration component)
+        const registration = await navigator.serviceWorker.ready;
 
         if (!registration) {
-          // Register service worker (following Next.js PWA guide)
-          try {
-            registration = await navigator.serviceWorker.register("/sw.js", {
-              scope: "/",
-              updateViaCache: "none",
-            });
-          } catch (err) {
-            const errorMsg = err instanceof Error ? err.message : "Unknown error";
-            setState((prev) => ({ ...prev, isLoading: false }));
-            throw new Error(
-              `Failed to register service worker: ${errorMsg}. Make sure /sw.js exists in the public folder.`
-            );
-          }
+          setState((prev) => ({ ...prev, isLoading: false }));
+          throw new Error(
+            "Service worker not registered. Please refresh the page and try again."
+          );
         }
 
-        // Wait for registration to be ready
-        const readyRegistration = await navigator.serviceWorker.ready;
-        registration = readyRegistration;
+        // Verify service worker is active and controlling the page
+        if (!registration.active) {
+          setState((prev) => ({ ...prev, isLoading: false }));
+          throw new Error(
+            "Service worker is not active. Please refresh the page and try again."
+          );
+        }
+
+        console.log(
+          "[usePushNotifications] Service worker ready, state:",
+          registration.active.state
+        );
 
         // Get VAPID public key from server
+        console.log("[usePushNotifications] Fetching VAPID public key...");
         const response = await fetch("/api/push/vapid-public-key");
         if (!response.ok) {
           const errorText = await response.text();
@@ -174,6 +181,8 @@ export function usePushNotifications() {
           );
         }
 
+        console.log("[usePushNotifications] VAPID key received, subscribing to push manager...");
+
         // Convert VAPID key to Uint8Array
         let applicationServerKey;
         try {
@@ -190,6 +199,7 @@ export function usePushNotifications() {
             userVisibleOnly: true,
             applicationServerKey,
           });
+          console.log("[usePushNotifications] Successfully subscribed to push manager");
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : "Unknown error";
           setState((prev) => ({ ...prev, isLoading: false }));
@@ -204,6 +214,8 @@ export function usePushNotifications() {
             auth: arrayBufferToBase64(subscription.getKey("auth")!),
           },
         };
+
+        console.log("[usePushNotifications] Saving subscription to server...");
 
         // Send subscription to server
         const subscribeResponse = await fetch("/api/push/subscribe", {
@@ -225,6 +237,8 @@ export function usePushNotifications() {
               `Failed to save subscription: ${subscribeResponse.statusText}`
           );
         }
+
+        console.log("[usePushNotifications] ✅ Subscription saved successfully!");
 
         setState((prev) => ({
           ...prev,

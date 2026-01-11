@@ -17,6 +17,23 @@ export function PushNotificationDebug() {
     try {
       const response = await fetch("/api/push/debug");
       const data = await response.json();
+
+      // Also check service worker state
+      if ("serviceWorker" in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          data.serviceWorker = {
+            state: registration.active?.state || "unknown",
+            isActive: !!registration.active,
+            isWaiting: !!registration.waiting,
+            isInstalling: !!registration.installing,
+            scope: registration.scope,
+          };
+        } else {
+          data.serviceWorker = { error: "No service worker registered" };
+        }
+      }
+
       setDebugInfo(data);
     } catch (error) {
       console.error("Error fetching debug info:", error);
@@ -123,6 +140,32 @@ export function PushNotificationDebug() {
           <div>
             <strong>Subscriptions in DB:</strong> {debugInfo.subscriptions?.count || 0}
           </div>
+          {debugInfo.serviceWorker && (
+            <>
+              <div className="mt-2 pt-2 border-t">
+                <strong>Service Worker:</strong>
+              </div>
+              {debugInfo.serviceWorker.error ? (
+                <div className="text-red-500">❌ {debugInfo.serviceWorker.error}</div>
+              ) : (
+                <>
+                  <div>
+                    <strong>State:</strong> {debugInfo.serviceWorker.state}
+                  </div>
+                  <div>
+                    <strong>Active:</strong>{" "}
+                    {debugInfo.serviceWorker.isActive ? "✅" : "❌"}
+                  </div>
+                  {debugInfo.serviceWorker.isWaiting && (
+                    <div className="text-yellow-600">⚠️ Update waiting</div>
+                  )}
+                  {debugInfo.serviceWorker.isInstalling && (
+                    <div>Installing...</div>
+                  )}
+                </>
+              )}
+            </>
+          )}
         </div>
       )}
 

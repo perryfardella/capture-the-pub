@@ -23,36 +23,55 @@ export function ServiceWorkerRegistration() {
       // Wait for page to load
       const registerSW = async () => {
         try {
+          console.log("[SW Registration] Starting service worker registration...");
+
           // Check if already registered
           let registration = await navigator.serviceWorker.getRegistration();
-          
+
           if (!registration) {
             // Register service worker (following Next.js PWA guide)
+            console.log("[SW Registration] No existing registration, registering /sw.js");
             try {
               registration = await navigator.serviceWorker.register("/sw.js", {
                 scope: "/",
                 updateViaCache: "none",
               });
-              
+
+              console.log("[SW Registration] Registration successful, waiting for ready state...");
+
               // Wait for service worker to be ready
               await navigator.serviceWorker.ready;
+
+              console.log("[SW Registration] Service worker is ready and active");
             } catch (err) {
-              console.error("Failed to register service worker:", err);
+              console.error("[SW Registration] Failed to register service worker:", err);
             }
           } else {
+            console.log("[SW Registration] Service worker already registered");
+
             // Ensure it's active
             if (registration.waiting) {
+              console.log("[SW Registration] Service worker waiting, sending SKIP_WAITING message");
               registration.waiting.postMessage({ type: "SKIP_WAITING" });
+            }
+
+            // Verify it's active and controlling
+            if (registration.active) {
+              console.log("[SW Registration] Service worker state:", registration.active.state);
             }
           }
         } catch (error) {
-          console.error("Service worker registration failed:", error);
+          console.error("[SW Registration] Service worker registration failed:", error);
         }
       };
 
-      // Register after page load (sooner for PWA)
-      const delay = isPWA ? 500 : 1000;
-      setTimeout(registerSW, delay);
+      // Register immediately for PWA, after small delay for browser
+      // This ensures SW is ready ASAP for push notifications
+      if (document.readyState === "complete") {
+        registerSW();
+      } else {
+        window.addEventListener("load", registerSW);
+      }
     }
   }, []);
 
