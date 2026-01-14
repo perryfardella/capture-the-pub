@@ -16,12 +16,13 @@ export function useActivityFeedQuery() {
   } = useQuery({
     queryKey: ["activity-feed"],
     queryFn: async () => {
-      const [{ data: captures }, { data: attempts }, { data: bonus }, { data: pubs }] =
+      const [{ data: captures }, { data: attempts }, { data: bonus }, { data: pubs }, { data: adminActions }] =
         await Promise.all([
           supabase.from("captures").select("*, teams(*), players(*), pubs(name)"),
           supabase.from("challenge_attempts").select("*, teams(*), players(*), challenges(pub_id, description, pubs(name))"),
           supabase.from("bonus_points").select("*, teams(*), players(*), challenges(description)"),
           supabase.from("pubs").select("id, name"),
+          supabase.from("admin_actions").select("*, teams(*), players(*), pubs(name), challenges(description)"),
         ]);
 
       // Create a lookup map for pub names
@@ -59,6 +60,13 @@ export function useActivityFeedQuery() {
           type: "bonus",
           created_at: b.created_at,
           challengeDescription: (b as any).challenges?.description,
+        })),
+        ...(adminActions ?? []).map((a) => ({
+          ...a,
+          type: "admin",
+          created_at: a.created_at,
+          pubName: (a as any).pubs?.name || null,
+          challengeDescription: (a as any).challenges?.description || null,
         })),
       ];
 
@@ -102,6 +110,16 @@ export function useActivityFeedQuery() {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "bonus_points" },
+          () => {
+            queryClient.invalidateQueries({ queryKey: ["activity-feed"] });
+          }
+        )
+        .subscribe(),
+      supabase
+        .channel("activity-feed-admin")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "admin_actions" },
           () => {
             queryClient.invalidateQueries({ queryKey: ["activity-feed"] });
           }

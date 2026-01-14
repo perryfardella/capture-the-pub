@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { logAdminAction } from "@/lib/utils/admin-actions";
 
 export async function POST(req: Request) {
   try {
@@ -81,6 +82,23 @@ export async function PATCH(req: Request) {
       console.error("Error updating pub:", error);
       return new NextResponse(`Database error: ${error.message}`, { status: 500 });
     }
+
+    // Log admin action based on action type
+    const actionDescriptions: Record<string, string> = {
+      update_name: "Admin renamed pub",
+      change_owner: "Admin changed pub owner",
+      set_drink_count: "Admin updated drink count",
+      toggle_lock: is_locked ? "Admin locked pub" : "Admin unlocked pub",
+      reset: "Admin reset pub",
+    };
+
+    await logAdminAction({
+      action_type: `pub_${action}`,
+      description: actionDescriptions[action] || "Admin updated pub",
+      pub_id: pubId,
+      team_id: controlling_team_id || null,
+      metadata: updateData,
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

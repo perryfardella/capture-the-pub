@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { logAdminAction } from "@/lib/utils/admin-actions";
 
 // DELETE - Undo/delete a capture
 export async function DELETE(req: Request) {
@@ -68,6 +69,21 @@ export async function DELETE(req: Request) {
           .eq("id", pubId);
       }
     }
+
+    // Get capture details for logging
+    const capture = pubCaptures.find((c) => c.id === captureId);
+
+    // Log admin action
+    await logAdminAction({
+      action_type: "capture_undo",
+      description: `Admin undid a capture`,
+      team_id: capture?.team_id || null,
+      pub_id: pubId,
+      metadata: {
+        was_latest: isLatestCapture,
+        drink_count: capture?.drink_count,
+      },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

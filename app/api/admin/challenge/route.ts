@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { logAdminAction } from "@/lib/utils/admin-actions";
 
 // POST - Create new challenge
 export async function POST(req: Request) {
@@ -121,6 +122,16 @@ export async function PATCH(req: Request) {
       }
 
       console.log(`✅ Pub ${challenge.pub_id} locked successfully`);
+
+      // Log admin action
+      await logAdminAction({
+        action_type: "challenge_complete",
+        description: `Admin marked challenge as complete`,
+        team_id: updates.completed_by_team_id,
+        pub_id: challenge.pub_id,
+        challenge_id: challengeId,
+        metadata: { challenge_description: challenge.description },
+      });
     }
 
     // If resetting a pub challenge, unlock the pub
@@ -150,6 +161,15 @@ export async function PATCH(req: Request) {
       }
 
       console.log(`✅ Pub ${challenge.pub_id} unlocked successfully`);
+
+      // Log admin action
+      await logAdminAction({
+        action_type: "challenge_reset",
+        description: `Admin reset challenge`,
+        pub_id: challenge.pub_id,
+        challenge_id: challengeId,
+        metadata: { challenge_description: challenge.description },
+      });
     }
 
     return NextResponse.json({ success: true });
@@ -190,6 +210,13 @@ export async function DELETE(req: Request) {
         );
       }
 
+      // Log admin action for bonus point deletion
+      await logAdminAction({
+        action_type: "bonus_point_delete",
+        description: `Admin removed bonus point`,
+        challenge_id: challengeId,
+      });
+
       return NextResponse.json({ success: true });
     }
 
@@ -211,6 +238,22 @@ export async function DELETE(req: Request) {
         { status: 500 }
       );
     }
+
+    // Get challenge details before deletion for logging
+    const { data: challenge } = await supabase
+      .from("challenges")
+      .select("*")
+      .eq("id", challengeId)
+      .single();
+
+    // Log admin action
+    await logAdminAction({
+      action_type: "challenge_delete",
+      description: `Admin deleted challenge`,
+      pub_id: challenge?.pub_id || null,
+      challenge_id: challengeId,
+      metadata: { challenge_description: challenge?.description },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

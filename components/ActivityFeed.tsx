@@ -78,6 +78,7 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
   const getItemIcon = (type: string, step?: string, success?: boolean) => {
     if (type === "capture") return "🍺";
     if (type === "bonus") return "⭐";
+    if (type === "admin") return "👨‍💼";
     if (type === "challenge") {
       if (step === "start") return "🎯";
       return success ? "✅" : "❌";
@@ -111,7 +112,8 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
         {feed.map((item, index) => {
           const itemKey = item.id + item.type;
           const isNew = newItemIds.has(itemKey);
-          const teamColor = item.teams?.color || "#666";
+          // Admin actions get a special purple color
+          const teamColor = item.type === "admin" ? "#9333ea" : (item.teams?.color || "#666");
 
           return (
             <div
@@ -217,6 +219,35 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                               <span className="text-muted-foreground">
                                 {" "}
                                 for {item.challengeDescription}
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {item.type === "admin" && (
+                          <>
+                            <span className="font-semibold text-purple-400">
+                              Admin
+                            </span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              {item.description}
+                            </span>
+                            {item.teams && (
+                              <span className="text-muted-foreground">
+                                {" "}
+                                for{" "}
+                                <span className="font-semibold">
+                                  {item.teams.name}
+                                </span>
+                              </span>
+                            )}
+                            {item.pubName && (
+                              <span className="text-muted-foreground">
+                                {" "}
+                                at{" "}
+                                <span className="font-semibold">
+                                  {item.pubName}
+                                </span>
                               </span>
                             )}
                           </>

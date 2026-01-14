@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { logAdminAction } from "@/lib/utils/admin-actions";
 
 export async function PATCH(req: Request) {
   try {
@@ -20,6 +21,14 @@ export async function PATCH(req: Request) {
       return new NextResponse(`Database error: ${error.message}`, { status: 500 });
     }
 
+    // Log admin action
+    await logAdminAction({
+      action_type: "player_reassign",
+      description: `Admin reassigned player to new team`,
+      player_id: playerId,
+      team_id: teamId,
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error in player API route:", error);
@@ -35,6 +44,13 @@ export async function DELETE(req: Request) {
     if (!playerId) {
       return new NextResponse("Player ID is required", { status: 400 });
     }
+
+    // Get player info before deletion for logging
+    const { data: player } = await supabase
+      .from("players")
+      .select("nickname, team_id")
+      .eq("id", playerId)
+      .single();
 
     // Delete player's push subscriptions first (not a foreign key, so we handle it manually)
     await supabase
@@ -54,6 +70,15 @@ export async function DELETE(req: Request) {
       console.error("Error deleting player:", error);
       return new NextResponse(`Database error: ${error.message}`, { status: 500 });
     }
+
+    // Log admin action
+    await logAdminAction({
+      action_type: "player_delete",
+      description: `Admin deleted player`,
+      player_id: playerId,
+      team_id: player?.team_id || null,
+      metadata: { nickname: player?.nickname },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
