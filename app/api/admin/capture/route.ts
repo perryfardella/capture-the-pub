@@ -15,10 +15,10 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // Get all captures for this pub, ordered by time (newest first)
+    // Get all captures for this pub with player, team, and pub info
     const { data: pubCaptures } = await supabase
       .from("captures")
-      .select("*")
+      .select("*, players(nickname), teams(name), pubs(name)")
       .eq("pub_id", pubId)
       .order("created_at", { ascending: false });
 
@@ -72,16 +72,20 @@ export async function DELETE(req: Request) {
 
     // Get capture details for logging
     const capture = pubCaptures.find((c) => c.id === captureId);
+    const playerName = (capture as any)?.players?.nickname || "unknown";
+    const teamName = (capture as any)?.teams?.name || "unknown team";
+    const pubName = (capture as any)?.pubs?.name || "pub";
 
-    // Log admin action
+    // Log admin action with details
     await logAdminAction({
       action_type: "capture_undo",
-      description: `Admin undid a capture`,
+      description: `Admin undid ${teamName}'s capture at ${pubName} by ${playerName}`,
       team_id: capture?.team_id || null,
       pub_id: pubId,
       metadata: {
         was_latest: isLatestCapture,
         drink_count: capture?.drink_count,
+        player_name: playerName,
       },
     });
 

@@ -11,6 +11,19 @@ export async function PATCH(req: Request) {
       return new NextResponse("Player ID and Team ID are required", { status: 400 });
     }
 
+    // Get player and team info for detailed logging
+    const { data: player } = await supabase
+      .from("players")
+      .select("nickname")
+      .eq("id", playerId)
+      .single();
+
+    const { data: team } = await supabase
+      .from("teams")
+      .select("name")
+      .eq("id", teamId)
+      .single();
+
     const { error } = await supabase
       .from("players")
       .update({ team_id: teamId })
@@ -21,10 +34,10 @@ export async function PATCH(req: Request) {
       return new NextResponse(`Database error: ${error.message}`, { status: 500 });
     }
 
-    // Log admin action
+    // Log admin action with specific details
     await logAdminAction({
       action_type: "player_reassign",
-      description: `Admin reassigned player to new team`,
+      description: `Admin reassigned ${player?.nickname || "player"} to ${team?.name || "team"}`,
       player_id: playerId,
       team_id: teamId,
     });
@@ -71,10 +84,10 @@ export async function DELETE(req: Request) {
       return new NextResponse(`Database error: ${error.message}`, { status: 500 });
     }
 
-    // Log admin action
+    // Log admin action with player name
     await logAdminAction({
       action_type: "player_delete",
-      description: `Admin deleted player`,
+      description: `Admin deleted player ${player?.nickname || "unknown"}`,
       player_id: playerId,
       team_id: player?.team_id || null,
       metadata: { nickname: player?.nickname },

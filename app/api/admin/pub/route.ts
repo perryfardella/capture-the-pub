@@ -44,22 +44,46 @@ export async function PATCH(req: Request) {
       return new NextResponse("Pub ID is required", { status: 400 });
     }
 
+    // Get pub and team info for detailed logging
+    const { data: pub } = await supabase
+      .from("pubs")
+      .select("name")
+      .eq("id", pubId)
+      .single();
+
+    const { data: team } = controlling_team_id ? await supabase
+      .from("teams")
+      .select("name")
+      .eq("id", controlling_team_id)
+      .single() : { data: null };
+
     let updateData: any = {};
+    let description = "";
 
     switch (action) {
       case "update_name":
         if (!name) return new NextResponse("Name is required", { status: 400 });
         updateData = { name };
+        description = `Admin renamed ${pub?.name || "pub"} to ${name}`;
         break;
       case "change_owner":
         updateData = { controlling_team_id: controlling_team_id || null };
+        if (controlling_team_id) {
+          description = `Admin changed ${pub?.name || "pub"} owner to ${team?.name || "team"}`;
+        } else {
+          description = `Admin removed owner from ${pub?.name || "pub"}`;
+        }
         break;
       case "set_drink_count":
         if (drink_count < 0) return new NextResponse("Drink count cannot be negative", { status: 400 });
         updateData = { drink_count };
+        description = `Admin updated drink count at ${pub?.name || "pub"} to ${drink_count}`;
         break;
       case "toggle_lock":
         updateData = { is_locked };
+        description = is_locked
+          ? `Admin locked ${pub?.name || "pub"}`
+          : `Admin unlocked ${pub?.name || "pub"}`;
         break;
       case "reset":
         updateData = {
@@ -68,6 +92,7 @@ export async function PATCH(req: Request) {
           is_locked: false,
           locked_by_team_id: null,
         };
+        description = `Admin reset ${pub?.name || "pub"}`;
         break;
       default:
         return new NextResponse("Invalid action", { status: 400 });
@@ -83,18 +108,9 @@ export async function PATCH(req: Request) {
       return new NextResponse(`Database error: ${error.message}`, { status: 500 });
     }
 
-    // Log admin action based on action type
-    const actionDescriptions: Record<string, string> = {
-      update_name: "Admin renamed pub",
-      change_owner: "Admin changed pub owner",
-      set_drink_count: "Admin updated drink count",
-      toggle_lock: is_locked ? "Admin locked pub" : "Admin unlocked pub",
-      reset: "Admin reset pub",
-    };
-
     await logAdminAction({
       action_type: `pub_${action}`,
-      description: actionDescriptions[action] || "Admin updated pub",
+      description,
       pub_id: pubId,
       team_id: controlling_team_id || null,
       metadata: updateData,

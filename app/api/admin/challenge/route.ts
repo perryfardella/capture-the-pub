@@ -123,10 +123,23 @@ export async function PATCH(req: Request) {
 
       console.log(`✅ Pub ${challenge.pub_id} locked successfully`);
 
+      // Get team and pub names for detailed logging
+      const { data: team } = await supabase
+        .from("teams")
+        .select("name")
+        .eq("id", updates.completed_by_team_id)
+        .single();
+
+      const { data: pub } = await supabase
+        .from("pubs")
+        .select("name")
+        .eq("id", challenge.pub_id)
+        .single();
+
       // Log admin action
       await logAdminAction({
         action_type: "challenge_complete",
-        description: `Admin marked challenge as complete`,
+        description: `Admin marked ${pub?.name || "pub"} challenge as complete for ${team?.name || "team"}`,
         team_id: updates.completed_by_team_id,
         pub_id: challenge.pub_id,
         challenge_id: challengeId,
@@ -162,10 +175,17 @@ export async function PATCH(req: Request) {
 
       console.log(`✅ Pub ${challenge.pub_id} unlocked successfully`);
 
+      // Get pub name for detailed logging
+      const { data: pub } = await supabase
+        .from("pubs")
+        .select("name")
+        .eq("id", challenge.pub_id)
+        .single();
+
       // Log admin action
       await logAdminAction({
         action_type: "challenge_reset",
-        description: `Admin reset challenge`,
+        description: `Admin reset ${pub?.name || "pub"} challenge`,
         pub_id: challenge.pub_id,
         challenge_id: challengeId,
         metadata: { challenge_description: challenge.description },
@@ -210,10 +230,17 @@ export async function DELETE(req: Request) {
         );
       }
 
+      // Get challenge description for logging
+      const { data: challenge } = await supabase
+        .from("challenges")
+        .select("description")
+        .eq("id", challengeId)
+        .single();
+
       // Log admin action for bonus point deletion
       await logAdminAction({
         action_type: "bonus_point_delete",
-        description: `Admin removed bonus point`,
+        description: `Admin removed bonus point for "${challenge?.description || "challenge"}"`,
         challenge_id: challengeId,
       });
 
@@ -221,6 +248,13 @@ export async function DELETE(req: Request) {
     }
 
     // Otherwise, delete the entire challenge and related data
+    // Get challenge details before deletion for logging
+    const { data: challenge } = await supabase
+      .from("challenges")
+      .select("*, pubs(name)")
+      .eq("id", challengeId)
+      .single();
+
     // Delete related data first (foreign key constraints)
     await supabase.from("challenge_attempts").delete().eq("challenge_id", challengeId);
     await supabase.from("bonus_points").delete().eq("challenge_id", challengeId);
@@ -239,17 +273,15 @@ export async function DELETE(req: Request) {
       );
     }
 
-    // Get challenge details before deletion for logging
-    const { data: challenge } = await supabase
-      .from("challenges")
-      .select("*")
-      .eq("id", challengeId)
-      .single();
+    const pubName = (challenge as any)?.pubs?.name;
+    const challengeDesc = challenge?.description || "challenge";
 
     // Log admin action
     await logAdminAction({
       action_type: "challenge_delete",
-      description: `Admin deleted challenge`,
+      description: pubName
+        ? `Admin deleted ${pubName} challenge: "${challengeDesc}"`
+        : `Admin deleted challenge: "${challengeDesc}"`,
       pub_id: challenge?.pub_id || null,
       challenge_id: challengeId,
       metadata: { challenge_description: challenge?.description },
