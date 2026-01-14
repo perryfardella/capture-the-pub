@@ -1,6 +1,7 @@
 import "./globals.css";
 import { GameStatusBanner } from "@/components/GameStateBanner";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { QueryProvider } from "@/lib/providers/query-provider";
 import type { Metadata, Viewport } from "next";
 
@@ -49,10 +50,12 @@ export default function RootLayout({
       <body className="bg-background text-foreground">
         <QueryProvider>
           <ServiceWorkerRegistration />
-          <div className="mx-auto max-w-md min-h-dvh">
-            <GameStatusBanner />
-            {children}
-          </div>
+          <ErrorBoundary>
+            <div className="mx-auto max-w-md min-h-dvh">
+              <GameStatusBanner />
+              {children}
+            </div>
+          </ErrorBoundary>
         </QueryProvider>
       </body>
     </html>

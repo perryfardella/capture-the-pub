@@ -182,20 +182,51 @@ export default function AdminPage() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => {
+              onKeyDown={async (e) => {
                 if (e.key === "Enter") {
-                  if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD)
-                    setAuthorized(true);
-                  else alert("Wrong password");
+                  try {
+                    const response = await fetch("/api/admin/auth", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ password }),
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                      setAuthorized(true);
+                      sessionStorage.setItem("admin_auth", "true");
+                    } else {
+                      alert(data.error || "Wrong password");
+                    }
+                  } catch (error) {
+                    alert("Authentication failed");
+                  }
                 }
               }}
               className="bg-slate-900/50 border-slate-600 text-white placeholder:text-slate-500"
+              autoComplete="current-password"
             />
             <Button
-              onClick={() => {
-                if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD)
-                  setAuthorized(true);
-                else alert("Wrong password");
+              onClick={async () => {
+                try {
+                  const response = await fetch("/api/admin/auth", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password }),
+                  });
+
+                  const data = await response.json();
+
+                  if (response.ok && data.success) {
+                    setAuthorized(true);
+                    sessionStorage.setItem("admin_auth", "true");
+                  } else {
+                    alert(data.error || "Wrong password");
+                  }
+                } catch (error) {
+                  alert("Authentication failed");
+                }
               }}
               className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-semibold"
             >

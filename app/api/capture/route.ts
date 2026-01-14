@@ -31,13 +31,18 @@ export async function POST(req: Request) {
     return new NextResponse("No player session", { status: 401 });
   }
 
-  // Fetch player & pub inside transaction-ish flow
+  // Fetch player
   const { data: player } = await supabase
     .from("players")
     .select("*, teams(*)")
     .eq("id", playerId)
     .single();
 
+  if (!player) {
+    return new NextResponse("Player not found", { status: 404 });
+  }
+
+  // Fetch pub with current state
   const { data: pub } = await supabase
     .from("pubs")
     .select("*")
@@ -51,7 +56,30 @@ export async function POST(req: Request) {
   // Media is already uploaded directly from client, use the provided URL
   const nextDrinkCount = pub.drink_count + 1;
 
-  // Insert capture
+  // Use optimistic locking: Update pub first with a WHERE clause that checks current drink_count
+  // This prevents race conditions where two teams capture simultaneously
+  const { data: updatedPub, error: pubUpdateError } = await supabase
+    .from("pubs")
+    .update({
+      controlling_team_id: player.team_id,
+      drink_count: nextDrinkCount,
+    })
+    .eq("id", pubId)
+    .eq("drink_count", pub.drink_count) // Optimistic locking: only update if drink_count hasn't changed
+    .eq("is_locked", false) // Also ensure still unlocked
+    .select()
+    .single();
+
+  if (pubUpdateError || !updatedPub) {
+    // If update failed, another team captured first or pub was locked
+    console.error("Pub capture race condition detected or pub locked:", pubUpdateError);
+    return new NextResponse(
+      "This pub was just captured by another team or locked. Please try again!",
+      { status: 409 } // 409 Conflict
+    );
+  }
+
+  // Pub updated successfully, now insert capture record
   const { error: captureError } = await supabase.from("captures").insert({
     pub_id: pubId,
     team_id: player.team_id,
@@ -61,20 +89,11 @@ export async function POST(req: Request) {
   });
 
   if (captureError) {
-    return new NextResponse(captureError.message, { status: 500 });
-  }
-
-  // Update pub ownership
-  const { error: pubUpdateError } = await supabase
-    .from("pubs")
-    .update({
-      controlling_team_id: player.team_id,
-      drink_count: nextDrinkCount,
-    })
-    .eq("id", pubId);
-
-  if (pubUpdateError) {
-    return new NextResponse(pubUpdateError.message, { status: 500 });
+    console.error("Failed to insert capture after pub update:", captureError);
+    // Pub is already updated, but capture record failed - this is bad but rare
+    // Log it but don't rollback (would require transactions)
+    // The pub state is the source of truth, capture is just history
+    return new NextResponse("Pub captured but failed to log capture", { status: 500 });
   }
 
   // Send push notification to all other players
