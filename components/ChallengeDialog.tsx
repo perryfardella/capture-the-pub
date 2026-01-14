@@ -13,6 +13,7 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useMediaUpload } from "@/lib/hooks/useMediaUpload";
 import { Camera, CheckCircle } from "lucide-react";
+import Image from "next/image";
 
 export function ChallengeDialog({
   challengeId,
@@ -380,6 +381,19 @@ export function ChallengeDialog({
                   Complete this challenge to <strong>lock the pub</strong> for your team
                 </p>
               </div>
+
+              {/* Show contextual image for The National Hotel challenge */}
+              {pubName === "The National Hotel" && (
+                <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden border-2 border-primary/20 mb-3">
+                  <Image
+                    src="/ho.jpg"
+                    alt="Building to find for The National Hotel challenge"
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                </div>
+              )}
 
               <button
                 type="button"
