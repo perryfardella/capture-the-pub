@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
 interface Team {
@@ -39,7 +38,6 @@ export function CaptureLog({
   teams: Team[];
   reload: () => void;
 }) {
-  const supabase = createSupabaseBrowserClient();
   const [filterPub, setFilterPub] = useState<string>("all");
   const [filterTeam, setFilterTeam] = useState<string>("all");
 
@@ -51,50 +49,26 @@ export function CaptureLog({
     )
       return;
 
-    // Get the pub
-    const pub = pubs.find((p) => p.id === capture.pub_id);
-    if (!pub) return;
+    try {
+      const response = await fetch("/api/admin/capture", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          captureId: capture.id,
+          pubId: capture.pub_id,
+        }),
+      });
 
-    // Get all captures for this pub, ordered by time (newest first)
-    const { data: pubCaptures } = await supabase
-      .from("captures")
-      .select("*")
-      .eq("pub_id", capture.pub_id)
-      .order("created_at", { ascending: false });
-
-    if (!pubCaptures || pubCaptures.length === 0) return;
-
-    // Find if this capture is the latest one
-    const isLatestCapture = pubCaptures[0].id === capture.id;
-
-    // Delete the capture
-    await supabase.from("captures").delete().eq("id", capture.id);
-
-    // If this was the latest capture, we need to update the pub
-    if (isLatestCapture) {
-      if (pubCaptures.length === 1) {
-        // This was the only capture, reset the pub
-        await supabase
-          .from("pubs")
-          .update({
-            controlling_team_id: null,
-            drink_count: 0,
-          })
-          .eq("id", capture.pub_id);
-      } else {
-        // Set to the previous capture's state
-        const previousCapture = pubCaptures[1];
-        await supabase
-          .from("pubs")
-          .update({
-            controlling_team_id: previousCapture.team_id,
-            drink_count: previousCapture.drink_count,
-          })
-          .eq("id", capture.pub_id);
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to undo capture");
       }
-    }
 
-    reload();
+      reload();
+    } catch (error) {
+      console.error("Error undoing capture:", error);
+      alert(error instanceof Error ? error.message : "Failed to undo capture");
+    }
   }
 
   const filteredCaptures = captures.filter((capture) => {

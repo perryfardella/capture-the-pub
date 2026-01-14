@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -37,7 +36,6 @@ export function ChallengeTable({
   teams: Team[];
   reload: () => void;
 }) {
-  const supabase = createSupabaseBrowserClient();
   const [showAddForm, setShowAddForm] = useState(false);
   const [newChallenge, setNewChallenge] = useState({
     type: "global" as "pub" | "global",
@@ -55,60 +53,146 @@ export function ChallengeTable({
       return;
     }
     setSaving(true);
-    await supabase.from("challenges").insert({
-      type: newChallenge.type,
-      pub_id: newChallenge.type === "pub" ? newChallenge.pub_id : null,
-      description: newChallenge.description.trim(),
-    });
-    setNewChallenge({ type: "global", pub_id: "", description: "" });
-    setShowAddForm(false);
-    setSaving(false);
-    reload();
+
+    try {
+      const response = await fetch("/api/admin/challenge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: newChallenge.type,
+          pub_id: newChallenge.type === "pub" ? newChallenge.pub_id : null,
+          description: newChallenge.description.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to create challenge");
+      }
+
+      setNewChallenge({ type: "global", pub_id: "", description: "" });
+      setShowAddForm(false);
+      reload();
+    } catch (error) {
+      console.error("Error adding challenge:", error);
+      alert(error instanceof Error ? error.message : "Failed to add challenge");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function updateChallenge(challenge: Challenge) {
     setSaving(true);
-    await supabase
-      .from("challenges")
-      .update({
-        description: challenge.description,
-        type: challenge.type,
-        pub_id: challenge.type === "pub" ? challenge.pub_id : null,
-      })
-      .eq("id", challenge.id);
-    setEditingChallenge(null);
-    setSaving(false);
-    reload();
+
+    try {
+      const response = await fetch("/api/admin/challenge", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          challengeId: challenge.id,
+          updates: {
+            description: challenge.description,
+            type: challenge.type,
+            pub_id: challenge.type === "pub" ? challenge.pub_id : null,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to update challenge");
+      }
+
+      setEditingChallenge(null);
+      reload();
+    } catch (error) {
+      console.error("Error updating challenge:", error);
+      alert(error instanceof Error ? error.message : "Failed to update challenge");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function deleteChallenge(challengeId: string) {
     if (!confirm("Delete this challenge? This cannot be undone.")) return;
-    // Delete related attempts and bonus points first
-    await supabase.from("challenge_attempts").delete().eq("challenge_id", challengeId);
-    await supabase.from("bonus_points").delete().eq("challenge_id", challengeId);
-    await supabase.from("challenges").delete().eq("id", challengeId);
-    reload();
+
+    try {
+      const response = await fetch("/api/admin/challenge", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to delete challenge");
+      }
+
+      reload();
+    } catch (error) {
+      console.error("Error deleting challenge:", error);
+      alert(error instanceof Error ? error.message : "Failed to delete challenge");
+    }
   }
 
   async function markComplete(challengeId: string, teamId: string | null) {
-    await supabase
-      .from("challenges")
-      .update({
-        is_consumed: true,
-        completed_by_team_id: teamId,
-      })
-      .eq("id", challengeId);
-    reload();
+    try {
+      const response = await fetch("/api/admin/challenge", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          challengeId,
+          updates: {
+            is_consumed: true,
+            completed_by_team_id: teamId,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to mark challenge complete");
+      }
+
+      reload();
+    } catch (error) {
+      console.error("Error marking challenge complete:", error);
+      alert(error instanceof Error ? error.message : "Failed to mark challenge complete");
+    }
   }
 
   async function resetChallenge(challengeId: string) {
-    // Delete bonus points for this challenge
-    await supabase.from("bonus_points").delete().eq("challenge_id", challengeId);
-    await supabase
-      .from("challenges")
-      .update({ is_consumed: false, completed_by_team_id: null })
-      .eq("id", challengeId);
-    reload();
+    try {
+      // Delete bonus points first
+      const deleteResponse = await fetch("/api/admin/challenge", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeId, deleteType: "bonus_points" }),
+      });
+
+      // Then reset the challenge
+      const response = await fetch("/api/admin/challenge", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          challengeId,
+          updates: {
+            is_consumed: false,
+            completed_by_team_id: null,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to reset challenge");
+      }
+
+      reload();
+    } catch (error) {
+      console.error("Error resetting challenge:", error);
+      alert(error instanceof Error ? error.message : "Failed to reset challenge");
+    }
   }
 
   const filteredChallenges = challenges.filter((c) => {
