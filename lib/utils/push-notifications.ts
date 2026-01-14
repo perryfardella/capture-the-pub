@@ -219,17 +219,28 @@ async function sendPushNotification(
       error instanceof Error &&
       (error.message.includes("410") ||
         error.message.includes("expired") ||
-        error.message.includes("Gone"))
+        error.message.includes("Gone") ||
+        error.message.includes("unsubscribed"))
     ) {
-      console.log("Subscription expired, removing from database");
-      // Optionally remove expired subscription from database
+      console.log("⚠️ Subscription expired/invalid (410), removing from database");
+
+      // Remove expired subscription from database
       const supabase = createSupabaseServiceRoleClient();
       const sub = subscription as { endpoint?: string };
+
       if (sub.endpoint) {
-        await supabase
+        console.log(`Deleting expired subscription: ${sub.endpoint.substring(0, 50)}...`);
+
+        const { error: deleteError } = await supabase
           .from("push_subscriptions")
           .delete()
           .eq("endpoint", sub.endpoint);
+
+        if (deleteError) {
+          console.error("Failed to delete expired subscription:", deleteError);
+        } else {
+          console.log("✅ Expired subscription removed from database");
+        }
       }
     } else {
       console.error("Error sending push notification:", error);

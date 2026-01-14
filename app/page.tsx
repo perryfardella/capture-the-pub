@@ -25,6 +25,7 @@ import { useOffline } from "@/lib/hooks/useOffline";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { useRealtimeGame } from "@/lib/hooks/useRealtimeGame";
 import { useActivityFeedQuery } from "@/lib/hooks/useActivityFeedQuery";
+import { useSubscriptionHealthCheck } from "@/lib/hooks/useSubscriptionHealthCheck";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -36,6 +37,9 @@ export default function Home() {
   const { feed } = useActivityFeedQuery();
   const offline = useOffline();
   const { isActive } = useGameState();
+
+  // Monitor push notification subscription health and auto re-subscribe if expired
+  useSubscriptionHealthCheck();
   // TODO
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [globalChallenges, setGlobalChallenges] = useState<any[]>([]);

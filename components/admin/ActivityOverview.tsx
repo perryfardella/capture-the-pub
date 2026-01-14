@@ -85,7 +85,10 @@ export function ActivityOverview({
     })),
     ...challengeAttempts.map((a) => ({
       id: `attempt-${a.id}`,
-      type: a.step === "start" ? ("challenge_start" as const) : ("challenge_result" as const),
+      type:
+        a.step === "start"
+          ? ("challenge_start" as const)
+          : ("challenge_result" as const),
       created_at: a.created_at,
       team_id: a.team_id,
       data: a,
@@ -97,14 +100,19 @@ export function ActivityOverview({
       team_id: b.team_id,
       data: b,
     })),
-  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  ].sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
 
   // Filter feed
   const filteredFeed = feed.filter((item) => {
     const matchesType =
       filterType === "all" ||
       (filterType === "capture" && item.type === "capture") ||
-      (filterType === "challenge" && (item.type === "challenge_start" || item.type === "challenge_result")) ||
+      (filterType === "challenge" &&
+        (item.type === "challenge_start" ||
+          item.type === "challenge_result")) ||
       (filterType === "bonus" && item.type === "bonus");
     const matchesTeam = filterTeam === "all" || item.team_id === filterTeam;
     return matchesType && matchesTeam;
@@ -113,12 +121,15 @@ export function ActivityOverview({
   // Stats
   const totalCaptures = captures.length;
   const totalAttempts = challengeAttempts.length;
-  const successfulChallenges = challengeAttempts.filter((a) => a.step === "result" && a.success).length;
+  const successfulChallenges = challengeAttempts.filter(
+    (a) => a.step === "result" && a.success
+  ).length;
   const totalBonusPoints = bonusPoints.length;
 
   const getTeam = (teamId: string) => teams.find((t) => t.id === teamId);
   const getPub = (pubId: string) => pubs.find((p) => p.id === pubId);
-  const getChallenge = (challengeId: string) => challenges.find((c) => c.id === challengeId);
+  const getChallenge = (challengeId: string) =>
+    challenges.find((c) => c.id === challengeId);
 
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -192,7 +203,9 @@ export function ActivityOverview({
                 {challenge?.description}
                 {pub && <span className="text-slate-500"> at {pub.name}</span>}
               </div>
-              <div className="text-xs text-slate-500">{formatTime(item.created_at)}</div>
+              <div className="text-xs text-slate-500">
+                {formatTime(item.created_at)}
+              </div>
             </div>
             {attempt.media_url && (
               <img
@@ -224,13 +237,21 @@ export function ActivityOverview({
                   style={{ backgroundColor: team?.color || "#888" }}
                 />
                 <span className="font-medium text-white">{team?.name}</span>
-                <span className={attempt.success ? "text-green-400" : "text-red-400"}>
+                <span
+                  className={
+                    attempt.success ? "text-green-400" : "text-red-400"
+                  }
+                >
                   {attempt.success ? "completed" : "failed"}
                 </span>
                 <span className="text-slate-400">challenge</span>
               </div>
-              <div className="text-xs text-slate-400 truncate">{challenge?.description}</div>
-              <div className="text-xs text-slate-500">{formatTime(item.created_at)}</div>
+              <div className="text-xs text-slate-400 truncate">
+                {challenge?.description}
+              </div>
+              <div className="text-xs text-slate-500">
+                {formatTime(item.created_at)}
+              </div>
             </div>
             {attempt.media_url && (
               <img
@@ -260,8 +281,12 @@ export function ActivityOverview({
                 <span className="font-medium text-white">{team?.name}</span>
                 <span className="text-amber-400">earned bonus point!</span>
               </div>
-              <div className="text-xs text-slate-400 truncate">{challenge?.description}</div>
-              <div className="text-xs text-slate-500">{formatTime(item.created_at)}</div>
+              <div className="text-xs text-slate-400 truncate">
+                {challenge?.description}
+              </div>
+              <div className="text-xs text-slate-500">
+                {formatTime(item.created_at)}
+              </div>
             </div>
           </div>
         );
@@ -283,19 +308,27 @@ export function ActivityOverview({
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-slate-800/50 backdrop-blur rounded-xl p-3 border border-slate-700">
-          <div className="text-2xl font-bold text-blue-400">{totalCaptures}</div>
+          <div className="text-2xl font-bold text-blue-400">
+            {totalCaptures}
+          </div>
           <div className="text-xs text-slate-400">Total Captures</div>
         </div>
         <div className="bg-slate-800/50 backdrop-blur rounded-xl p-3 border border-slate-700">
-          <div className="text-2xl font-bold text-yellow-400">{totalAttempts}</div>
+          <div className="text-2xl font-bold text-yellow-400">
+            {totalAttempts}
+          </div>
           <div className="text-xs text-slate-400">Challenge Attempts</div>
         </div>
         <div className="bg-slate-800/50 backdrop-blur rounded-xl p-3 border border-slate-700">
-          <div className="text-2xl font-bold text-green-400">{successfulChallenges}</div>
+          <div className="text-2xl font-bold text-green-400">
+            {successfulChallenges}
+          </div>
           <div className="text-xs text-slate-400">Challenges Won</div>
         </div>
         <div className="bg-slate-800/50 backdrop-blur rounded-xl p-3 border border-slate-700">
-          <div className="text-2xl font-bold text-amber-400">{totalBonusPoints}</div>
+          <div className="text-2xl font-bold text-amber-400">
+            {totalBonusPoints}
+          </div>
           <div className="text-xs text-slate-400">Bonus Points</div>
         </div>
       </div>
@@ -340,7 +373,9 @@ export function ActivityOverview({
       {/* Feed */}
       <div className="space-y-2">
         {filteredFeed.length === 0 ? (
-          <div className="text-center py-8 text-slate-400">No activity found</div>
+          <div className="text-center py-8 text-slate-400">
+            No activity found
+          </div>
         ) : (
           filteredFeed.map((item) => (
             <div
@@ -355,4 +390,3 @@ export function ActivityOverview({
     </div>
   );
 }
-
