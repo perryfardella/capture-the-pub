@@ -395,6 +395,19 @@ export function ChallengeDialog({
                 </div>
               )}
 
+              {/* Show contextual image for Mons O`Shea challenge */}
+              {pubName === "Mons O`Shea" && (
+                <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden border-2 border-primary/20 mb-3">
+                  <Image
+                    src="/split.jpg"
+                    alt="Perfect Guinness split for Mons O`Shea challenge"
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                </div>
+              )}
+
               <button
                 type="button"
                 className="w-full py-8 px-4 border-2 border-dashed border-primary/30 rounded-xl bg-primary/5 hover:bg-primary/10 hover:border-primary/50 transition-all flex flex-col items-center justify-center gap-3 active:scale-[0.98]"
