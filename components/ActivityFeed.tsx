@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Image from "next/image";
+import Image, { ImageProps } from "next/image";
 import {
   Dialog,
   DialogContent,
@@ -9,8 +9,38 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
+interface CachedImageProps extends Omit<ImageProps, 'src' | 'alt'> {
+  src: string;
+  alt: string;
+}
+
+interface CachedVideoProps extends React.VideoHTMLAttributes<HTMLVideoElement> {
+  src: string;
+}
+
+interface ActivityFeedItem {
+  id: string;
+  type: "capture" | "challenge" | "bonus" | "admin";
+  created_at: string;
+  media_url?: string;
+  players?: {
+    nickname: string;
+  };
+  teams?: {
+    name: string;
+    color: string;
+  };
+  pubName?: string;
+  pub_id?: string;
+  drink_count?: number;
+  step?: string;
+  success?: boolean;
+  challengeDescription?: string;
+  description?: string;
+}
+
 // Component for optimized image loading with caching
-function CachedImage({ src, alt, ...props }: any) {
+function CachedImage({ src, alt, ...props }: CachedImageProps) {
   return (
     <Image
       src={src}
@@ -26,7 +56,7 @@ function CachedImage({ src, alt, ...props }: any) {
 }
 
 // Component for optimized video loading
-function CachedVideo({ src, ...props }: any) {
+function CachedVideo({ src, ...props }: CachedVideoProps) {
   return (
     <video
       src={src}
@@ -38,9 +68,7 @@ function CachedVideo({ src, ...props }: any) {
   );
 }
 
-// TODO
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function ActivityFeed({ feed }: { feed: any[] }) {
+export function ActivityFeed({ feed }: { feed: ActivityFeedItem[] }) {
   const [previewMedia, setPreviewMedia] = useState<string | null>(null);
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
   const prevFeedIdsRef = useRef<Set<string>>(new Set());
@@ -287,7 +315,7 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                 {/* Media thumbnail */}
                 {item.media_url && (
                   <button
-                    onClick={() => setPreviewMedia(item.media_url)}
+                    onClick={() => setPreviewMedia(item.media_url || null)}
                     className="mt-3 ml-11 rounded-lg overflow-hidden w-[calc(100%-2.75rem)] text-left cursor-pointer hover:opacity-90 active:scale-[0.99] transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary border-0 p-0 block"
                   >
                     {item.media_url.endsWith(".mp4") ? (

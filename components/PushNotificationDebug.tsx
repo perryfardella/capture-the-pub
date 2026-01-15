@@ -5,13 +5,30 @@ import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { Button } from "@/components/ui/button";
 
+interface DebugInfo {
+  vapid?: {
+    publicKeyConfigured: boolean;
+    privateKeyConfigured: boolean;
+  };
+  subscriptions?: {
+    count: number;
+  };
+  serviceWorker?: {
+    state?: string;
+    isActive?: boolean;
+    isWaiting?: boolean;
+    isInstalling?: boolean;
+    scope?: string;
+    error?: string;
+  };
+}
+
 export function PushNotificationDebug() {
   const { isSupported, permission, isSubscribed, subscription } =
     usePushNotifications();
   const { player } = usePlayer();
-  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const [testResult, setTestResult] = useState<string | null>(null);
-
 
   const fetchDebugInfo = async () => {
     try {
@@ -43,14 +60,14 @@ export function PushNotificationDebug() {
   const sendTestNotification = async () => {
     try {
       setTestResult("Sending...");
-      
+
       // Check service worker registration
       if ("serviceWorker" in navigator) {
         const registration = await navigator.serviceWorker.ready;
         console.log("Service worker registration:", registration);
         console.log("Service worker state:", registration.active?.state);
       }
-      
+
       const response = await fetch("/api/push/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -62,19 +79,23 @@ export function PushNotificationDebug() {
           ? `✅ ${data.message}\n\nCheck the Service Worker console (DevTools > Application > Service Workers) to see if the push event was received.`
           : `❌ Error: ${data.error || "Unknown error"}`
       );
-      
+
       // Wait a moment and check if notification was shown
       setTimeout(() => {
-        console.log("After sending notification, check browser notifications and service worker console");
+        console.log(
+          "After sending notification, check browser notifications and service worker console"
+        );
       }, 2000);
     } catch (error) {
-      setTestResult(`❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+      setTestResult(
+        `❌ Error: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     }
   };
 
   // Show debug panel ONLY if debug query param is present
   const [showDebug, setShowDebug] = useState(false);
-  
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -138,7 +159,8 @@ export function PushNotificationDebug() {
             {debugInfo.vapid?.privateKeyConfigured ? "✅" : "❌"}
           </div>
           <div>
-            <strong>Subscriptions in DB:</strong> {debugInfo.subscriptions?.count || 0}
+            <strong>Subscriptions in DB:</strong>{" "}
+            {debugInfo.subscriptions?.count || 0}
           </div>
           {debugInfo.serviceWorker && (
             <>
@@ -146,7 +168,9 @@ export function PushNotificationDebug() {
                 <strong>Service Worker:</strong>
               </div>
               {debugInfo.serviceWorker.error ? (
-                <div className="text-red-500">❌ {debugInfo.serviceWorker.error}</div>
+                <div className="text-red-500">
+                  ❌ {debugInfo.serviceWorker.error}
+                </div>
               ) : (
                 <>
                   <div>
@@ -169,10 +193,7 @@ export function PushNotificationDebug() {
         </div>
       )}
 
-      {testResult && (
-        <div className="mt-2 text-xs">{testResult}</div>
-      )}
+      {testResult && <div className="mt-2 text-xs">{testResult}</div>}
     </div>
   );
 }
-

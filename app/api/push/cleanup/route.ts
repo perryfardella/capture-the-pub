@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
-import webpush from "web-push";
 
 /**
  * Admin endpoint to clean up invalid/expired push subscriptions

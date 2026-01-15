@@ -72,7 +72,10 @@ export async function POST(req: Request) {
 
   if (pubUpdateError || !updatedPub) {
     // If update failed, another team captured first or pub was locked
-    console.error("Pub capture race condition detected or pub locked:", pubUpdateError);
+    console.error(
+      "Pub capture race condition detected or pub locked:",
+      pubUpdateError
+    );
     return new NextResponse(
       "This pub was just captured by another team or locked. Please try again!",
       { status: 409 } // 409 Conflict
@@ -93,7 +96,9 @@ export async function POST(req: Request) {
     // Pub is already updated, but capture record failed - this is bad but rare
     // Log it but don't rollback (would require transactions)
     // The pub state is the source of truth, capture is just history
-    return new NextResponse("Pub captured but failed to log capture", { status: 500 });
+    return new NextResponse("Pub captured but failed to log capture", {
+      status: 500,
+    });
   }
 
   // Send push notification to all other players

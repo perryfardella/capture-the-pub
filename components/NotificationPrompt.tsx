@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePushNotifications } from "@/lib/hooks/usePushNotifications";
 import { usePlayer } from "@/lib/hooks/usePlayer";
 import { Button } from "@/components/ui/button";

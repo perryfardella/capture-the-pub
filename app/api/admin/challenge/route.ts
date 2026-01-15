@@ -273,8 +273,15 @@ export async function DELETE(req: Request) {
       );
     }
 
-    const pubName = (challenge as any)?.pubs?.name;
-    const challengeDesc = challenge?.description || "challenge";
+    interface ChallengeWithPub {
+      description?: string;
+      pub_id?: string | null;
+      pubs?: { name: string } | null;
+    }
+
+    const challengeWithPub = challenge as ChallengeWithPub;
+    const pubName = challengeWithPub?.pubs?.name;
+    const challengeDesc = challengeWithPub?.description || "challenge";
 
     // Log admin action
     await logAdminAction({
@@ -282,9 +289,9 @@ export async function DELETE(req: Request) {
       description: pubName
         ? `Admin deleted ${pubName} challenge: "${challengeDesc}"`
         : `Admin deleted challenge: "${challengeDesc}"`,
-      pub_id: challenge?.pub_id || null,
+      pub_id: challengeWithPub?.pub_id || null,
       challenge_id: challengeId,
-      metadata: { challenge_description: challenge?.description },
+      metadata: { challenge_description: challengeWithPub?.description },
     });
 
     return NextResponse.json({ success: true });

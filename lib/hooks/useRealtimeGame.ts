@@ -3,21 +3,69 @@
 import { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+interface Team {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface Challenge {
+  id: string;
+  type: string;
+  pub_id?: string | null;
+  description?: string;
+  is_consumed?: boolean;
+  completed_by_team_id?: string | null;
+}
+
+interface Player {
+  id: string;
+  nickname: string;
+  team_id: string;
+}
+
+interface Pub {
+  id: string;
+  name: string;
+  latitude?: number;
+  longitude?: number;
+  controlling_team_id?: string | null;
+  drink_count: number;
+  is_locked: boolean;
+  locked_by_team_id?: string | null;
+  challenge?: Challenge | null;
+}
+
+interface Capture {
+  id: string;
+  team_id: string;
+  player_id?: string | null;
+  pub_id: string;
+  drink_count: number;
+  media_url?: string;
+  created_at: string;
+  teams?: Team | null;
+  players?: Player | null;
+}
+
+interface BonusPoint {
+  id: string;
+  team_id: string;
+  challenge_id: string;
+  player_id?: string | null;
+  created_at: string;
+  teams?: Team | null;
+  challenges?: Challenge | null;
+  players?: Player | null;
+}
+
 export function useRealtimeGame() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
 
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [pubs, setPubs] = useState<any[]>([]);
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [captures, setCaptures] = useState<any[]>([]);
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [bonusPoints, setBonusPoints] = useState<any[]>([]);
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [teams, setTeams] = useState<any[]>([]);
+  const [pubs, setPubs] = useState<Pub[]>([]);
+  const [captures, setCaptures] = useState<Capture[]>([]);
+  const [bonusPoints, setBonusPoints] = useState<BonusPoint[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
 
   // Initial load
   useEffect(() => {
@@ -115,21 +163,23 @@ export function useRealtimeGame() {
         async (payload) => {
           if (payload.eventType === "INSERT") {
             // Fetch challenge for new pub
+            const newPub = payload.new as Pub;
             const { data: challenge } = await supabase
               .from("challenges")
               .select("*")
               .eq("type", "pub")
-              .eq("pub_id", (payload.new as any).id)
+              .eq("pub_id", newPub.id)
               .single();
             setPubs((prev) => [
               ...prev,
-              { ...payload.new, challenge: challenge || null } as any,
+              { ...newPub, challenge: challenge || null },
             ]);
           } else if (payload.eventType === "UPDATE") {
+            const updatedPub = payload.new as Pub;
             setPubs((prev) =>
               prev.map((p) =>
-                p.id === (payload.new as { id: string }).id
-                  ? { ...payload.new, challenge: p.challenge }
+                p.id === updatedPub.id
+                  ? { ...updatedPub, challenge: p.challenge }
                   : p
               )
             );
@@ -161,51 +211,53 @@ export function useRealtimeGame() {
         async (payload) => {
           if (payload.eventType === "INSERT") {
             // Fetch team and player data for the new capture
+            const newCapture = payload.new as Capture;
             const [{ data: teamData }, { data: playerData }] =
               await Promise.all([
                 supabase
                   .from("teams")
                   .select("*")
-                  .eq("id", (payload.new as any).team_id)
+                  .eq("id", newCapture.team_id)
                   .single(),
-                (payload.new as any).player_id
+                newCapture.player_id
                   ? supabase
                       .from("players")
                       .select("*")
-                      .eq("id", (payload.new as any).player_id)
+                      .eq("id", newCapture.player_id)
                       .single()
                   : Promise.resolve({ data: null }),
               ]);
             setCaptures((prev) => [
               ...prev,
               {
-                ...payload.new,
+                ...newCapture,
                 teams: teamData || null,
                 players: playerData || null,
-              } as any,
+              },
             ]);
           } else if (payload.eventType === "UPDATE") {
             // Fetch team and player data for the updated capture
+            const updatedCapture = payload.new as Capture;
             const [{ data: teamData }, { data: playerData }] =
               await Promise.all([
                 supabase
                   .from("teams")
                   .select("*")
-                  .eq("id", (payload.new as any).team_id)
+                  .eq("id", updatedCapture.team_id)
                   .single(),
-                (payload.new as any).player_id
+                updatedCapture.player_id
                   ? supabase
                       .from("players")
                       .select("*")
-                      .eq("id", (payload.new as any).player_id)
+                      .eq("id", updatedCapture.player_id)
                       .single()
                   : Promise.resolve({ data: null }),
               ]);
             setCaptures((prev) =>
               prev.map((c) =>
-                c.id === (payload.new as { id: string }).id
+                c.id === updatedCapture.id
                   ? {
-                      ...payload.new,
+                      ...updatedCapture,
                       teams: teamData || null,
                       players: playerData || null,
                     }
@@ -240,6 +292,7 @@ export function useRealtimeGame() {
         async (payload) => {
           if (payload.eventType === "INSERT") {
             // Fetch team, challenge, and player data for the new bonus point
+            const newBonus = payload.new as BonusPoint;
             const [
               { data: teamData },
               { data: challengeData },
@@ -248,32 +301,33 @@ export function useRealtimeGame() {
               supabase
                 .from("teams")
                 .select("*")
-                .eq("id", (payload.new as any).team_id)
+                .eq("id", newBonus.team_id)
                 .single(),
               supabase
                 .from("challenges")
                 .select("*")
-                .eq("id", (payload.new as any).challenge_id)
+                .eq("id", newBonus.challenge_id)
                 .single(),
-              (payload.new as any).player_id
+              newBonus.player_id
                 ? supabase
                     .from("players")
                     .select("*")
-                    .eq("id", (payload.new as any).player_id)
+                    .eq("id", newBonus.player_id)
                     .single()
                 : Promise.resolve({ data: null }),
             ]);
             setBonusPoints((prev) => [
               ...prev,
               {
-                ...payload.new,
+                ...newBonus,
                 teams: teamData || null,
                 challenges: challengeData || null,
                 players: playerData || null,
-              } as any,
+              },
             ]);
           } else if (payload.eventType === "UPDATE") {
             // Fetch team, challenge, and player data for the updated bonus point
+            const updatedBonus = payload.new as BonusPoint;
             const [
               { data: teamData },
               { data: challengeData },
@@ -282,26 +336,26 @@ export function useRealtimeGame() {
               supabase
                 .from("teams")
                 .select("*")
-                .eq("id", (payload.new as any).team_id)
+                .eq("id", updatedBonus.team_id)
                 .single(),
               supabase
                 .from("challenges")
                 .select("*")
-                .eq("id", (payload.new as any).challenge_id)
+                .eq("id", updatedBonus.challenge_id)
                 .single(),
-              (payload.new as any).player_id
+              updatedBonus.player_id
                 ? supabase
                     .from("players")
                     .select("*")
-                    .eq("id", (payload.new as any).player_id)
+                    .eq("id", updatedBonus.player_id)
                     .single()
                 : Promise.resolve({ data: null }),
             ]);
             setBonusPoints((prev) =>
               prev.map((b) =>
-                b.id === (payload.new as { id: string }).id
+                b.id === updatedBonus.id
                   ? {
-                      ...payload.new,
+                      ...updatedBonus,
                       teams: teamData || null,
                       challenges: challengeData || null,
                       players: playerData || null,

@@ -3,11 +3,22 @@
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+interface Team {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface Player {
+  id: string;
+  nickname: string;
+  team_id: string;
+  teams?: Team;
+}
+
 export function usePlayer() {
   const supabase = createSupabaseBrowserClient();
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [player, setPlayer] = useState<any>(null);
+  const [player, setPlayer] = useState<Player | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -4,6 +4,26 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useEffect } from "react";
 
+interface CaptureWithRelations {
+  id: string;
+  created_at: string;
+  pub_id: string;
+  pubs?: { name: string } | null;
+}
+
+interface BonusWithRelations {
+  id: string;
+  created_at: string;
+  challenges?: { description: string } | null;
+}
+
+interface AdminActionWithRelations {
+  id: string;
+  created_at: string;
+  pubs?: { name: string } | null;
+  challenges?: { description: string } | null;
+}
+
 export function useActivityFeedQuery() {
   const queryClient = useQueryClient();
   const supabase = createSupabaseBrowserClient();
@@ -48,26 +68,35 @@ export function useActivityFeedQuery() {
         });
 
       const all = [
-        ...(captures ?? []).map((c) => ({
-          ...c,
-          type: "capture",
-          created_at: c.created_at,
-          pubName: (c as any).pubs?.name || pubNameMap.get(c.pub_id),
-        })),
+        ...(captures ?? []).map((c) => {
+          const capture = c as CaptureWithRelations;
+          return {
+            ...c,
+            type: "capture",
+            created_at: c.created_at,
+            pubName: capture.pubs?.name || pubNameMap.get(capture.pub_id),
+          };
+        }),
         ...processedChallengeAttempts,
-        ...(bonus ?? []).map((b) => ({
-          ...b,
-          type: "bonus",
-          created_at: b.created_at,
-          challengeDescription: (b as any).challenges?.description,
-        })),
-        ...(adminActions ?? []).map((a) => ({
-          ...a,
-          type: "admin",
-          created_at: a.created_at,
-          pubName: (a as any).pubs?.name || null,
-          challengeDescription: (a as any).challenges?.description || null,
-        })),
+        ...(bonus ?? []).map((b) => {
+          const bonusPoint = b as BonusWithRelations;
+          return {
+            ...b,
+            type: "bonus",
+            created_at: b.created_at,
+            challengeDescription: bonusPoint.challenges?.description,
+          };
+        }),
+        ...(adminActions ?? []).map((a) => {
+          const action = a as AdminActionWithRelations;
+          return {
+            ...a,
+            type: "admin",
+            created_at: a.created_at,
+            pubName: action.pubs?.name || null,
+            challengeDescription: action.challenges?.description || null,
+          };
+        }),
       ];
 
       return all.sort(

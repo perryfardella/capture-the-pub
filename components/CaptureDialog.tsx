@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useMediaUpload } from "@/lib/hooks/useMediaUpload";
-import { Camera, CheckCircle, Loader2 } from "lucide-react";
+import { Camera, CheckCircle } from "lucide-react";
 
 export function CaptureDialog({
   pubId,

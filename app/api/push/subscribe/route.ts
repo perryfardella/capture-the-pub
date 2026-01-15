@@ -14,7 +14,10 @@ export async function POST(req: Request) {
     });
 
     if (!subscription || !playerId) {
-      console.error("Missing subscription or playerId:", { subscription: !!subscription, playerId });
+      console.error("Missing subscription or playerId:", {
+        subscription: !!subscription,
+        playerId,
+      });
       return NextResponse.json(
         { error: "Missing subscription or playerId" },
         { status: 400 }
@@ -54,7 +57,10 @@ export async function POST(req: Request) {
     if (error) {
       console.error("Error saving push subscription:", error);
       return NextResponse.json(
-        { error: `Failed to save subscription: ${error.message}`, details: error },
+        {
+          error: `Failed to save subscription: ${error.message}`,
+          details: error,
+        },
         { status: 500 }
       );
     }
@@ -73,4 +79,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

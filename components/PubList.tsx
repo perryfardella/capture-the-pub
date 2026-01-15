@@ -42,7 +42,9 @@ interface PubState {
 export function PubList({ pubs, teams, playerTeamId }: PubListProps) {
   const { isActive } = useGameState();
   const [animatingPubs, setAnimatingPubs] = useState<Set<string>>(new Set());
-  const [animatingDrinks, setAnimatingDrinks] = useState<Set<string>>(new Set());
+  const [animatingDrinks, setAnimatingDrinks] = useState<Set<string>>(
+    new Set()
+  );
   const prevPubsRef = useRef<Map<string, PubState>>(new Map());
 
   // Detect changes and trigger animations
@@ -147,7 +149,9 @@ export function PubList({ pubs, teams, playerTeamId }: PubListProps) {
                         🔒
                       </span>
                     )}
-                    <h3 className="font-semibold text-lg truncate">{pub.name}</h3>
+                    <h3 className="font-semibold text-lg truncate">
+                      {pub.name}
+                    </h3>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm">
@@ -155,7 +159,9 @@ export function PubList({ pubs, teams, playerTeamId }: PubListProps) {
                       <span className="text-muted-foreground">Drinks:</span>
                       <span
                         className={`font-bold text-base ${
-                          isDrinkAnimating ? "animate-number-pop text-primary" : ""
+                          isDrinkAnimating
+                            ? "animate-number-pop text-primary"
+                            : ""
                         }`}
                       >
                         {pub.drink_count}
@@ -205,7 +211,9 @@ export function PubList({ pubs, teams, playerTeamId }: PubListProps) {
                       pubId={pub.id}
                       pubName={pub.name}
                       description={pub.challenge.description}
-                      disabled={!isActive || playerTeamId !== pub.controlling_team_id}
+                      disabled={
+                        !isActive || playerTeamId !== pub.controlling_team_id
+                      }
                       onSuccess={() => {}}
                       playerTeamId={playerTeamId}
                     />

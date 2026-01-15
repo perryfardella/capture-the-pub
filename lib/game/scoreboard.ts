@@ -1,17 +1,27 @@
+interface Team {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface Pub {
+  id: string;
+  controlling_team_id?: string | null;
+}
+
+interface BonusPoint {
+  id: string;
+  team_id: string;
+}
+
 export function calculateScores({
   teams,
   pubs,
   bonusPoints,
 }: {
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  teams: any[];
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  pubs: any[];
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  bonusPoints: any[];
+  teams: Team[];
+  pubs: Pub[];
+  bonusPoints: BonusPoint[];
 }) {
   return teams
     .map((team) => {

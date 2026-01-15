@@ -2,7 +2,6 @@
 
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { ChallengeDialog } from "@/components/ChallengeDialog";
-import { PubList } from "@/components/PubList";
 import { Scoreboard } from "@/components/Scoreboard";
 import dynamic from "next/dynamic";
 
@@ -29,23 +28,30 @@ import { useSubscriptionHealthCheck } from "@/lib/hooks/useSubscriptionHealthChe
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { Button } from "@/components/ui/button";
+
+interface Challenge {
+  id: string;
+  description: string;
+  type: string;
+}
+
+interface Player {
+  id: string;
+  nickname: string;
+  team_id: string;
+}
 
 export default function Home() {
   const { player, loading } = usePlayer();
-  const { pubs, captures, bonusPoints, teams } = useRealtimeGame();
+  const { pubs, bonusPoints, teams } = useRealtimeGame();
   const { feed } = useActivityFeedQuery();
   const offline = useOffline();
   const { isActive } = useGameState();
 
   // Monitor push notification subscription health and auto re-subscribe if expired
   useSubscriptionHealthCheck();
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [globalChallenges, setGlobalChallenges] = useState<any[]>([]);
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [playersByTeam, setPlayersByTeam] = useState<Record<string, any[]>>({});
+  const [globalChallenges, setGlobalChallenges] = useState<Challenge[]>([]);
+  const [playersByTeam, setPlayersByTeam] = useState<Record<string, Player[]>>({});
   const [activeTab, setActiveTab] = useState<
     "map" | "scoreboard" | "activity" | "challenges"
   >("map");

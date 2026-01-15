@@ -51,14 +51,14 @@ export function PubTable({
   async function addPub() {
     if (!newPubName.trim()) return;
     setSaving(true);
-    
+
     try {
       const response = await fetch("/api/admin/pub", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newPubName.trim() }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Failed to add pub:", errorText);
@@ -66,7 +66,7 @@ export function PubTable({
         setSaving(false);
         return;
       }
-      
+
       setNewPubName("");
       setShowAddForm(false);
       reload();
@@ -74,24 +74,24 @@ export function PubTable({
       console.error("Error adding pub:", error);
       alert("Failed to add pub. Please try again.");
     }
-    
+
     setSaving(false);
   }
 
   async function updatePub(pub: Pub) {
     setSaving(true);
-    
+
     try {
       const response = await fetch("/api/admin/pub", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          pubId: pub.id, 
+        body: JSON.stringify({
+          pubId: pub.id,
           name: pub.name,
-          action: "update_name"
+          action: "update_name",
         }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Failed to update pub:", errorText);
@@ -99,34 +99,39 @@ export function PubTable({
         setSaving(false);
         return;
       }
-      
+
       setEditingPub(null);
       reload();
     } catch (error) {
       console.error("Error updating pub:", error);
       alert("Failed to update pub. Please try again.");
     }
-    
+
     setSaving(false);
   }
 
   async function deletePub(pubId: string, pubName: string) {
-    if (!confirm(`Delete pub "${pubName}"? This will also delete all capture history.`)) return;
-    
+    if (
+      !confirm(
+        `Delete pub "${pubName}"? This will also delete all capture history.`
+      )
+    )
+      return;
+
     try {
       const response = await fetch("/api/admin/pub", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pubId }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Failed to delete pub:", errorText);
         alert(`Failed to delete pub: ${errorText}`);
         return;
       }
-      
+
       reload();
     } catch (error) {
       console.error("Error deleting pub:", error);
@@ -139,20 +144,20 @@ export function PubTable({
       const response = await fetch("/api/admin/pub", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           pubId,
           is_locked: !currentlyLocked,
-          action: "toggle_lock"
+          action: "toggle_lock",
         }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Failed to toggle lock:", errorText);
         alert(`Failed to toggle lock: ${errorText}`);
         return;
       }
-      
+
       reload();
     } catch (error) {
       console.error("Error toggling lock:", error);
@@ -165,20 +170,20 @@ export function PubTable({
       const response = await fetch("/api/admin/pub", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           pubId,
           controlling_team_id: teamId || null,
-          action: "change_owner"
+          action: "change_owner",
         }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Failed to change owner:", errorText);
         alert(`Failed to change owner: ${errorText}`);
         return;
       }
-      
+
       reload();
     } catch (error) {
       console.error("Error changing owner:", error);
@@ -187,25 +192,30 @@ export function PubTable({
   }
 
   async function resetPub(pubId: string, pubName: string) {
-    if (!confirm(`Reset "${pubName}"? This will clear ownership, drink count, and lock status.`)) return;
-    
+    if (
+      !confirm(
+        `Reset "${pubName}"? This will clear ownership, drink count, and lock status.`
+      )
+    )
+      return;
+
     try {
       const response = await fetch("/api/admin/pub", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           pubId,
-          action: "reset"
+          action: "reset",
         }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Failed to reset pub:", errorText);
         alert(`Failed to reset pub: ${errorText}`);
         return;
       }
-      
+
       reload();
     } catch (error) {
       console.error("Error resetting pub:", error);
@@ -215,25 +225,25 @@ export function PubTable({
 
   async function setDrinkCount(pubId: string, count: number) {
     if (count < 0) return;
-    
+
     try {
       const response = await fetch("/api/admin/pub", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           pubId,
           drink_count: count,
-          action: "set_drink_count"
+          action: "set_drink_count",
         }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Failed to set drink count:", errorText);
         alert(`Failed to set drink count: ${errorText}`);
         return;
       }
-      
+
       reload();
     } catch (error) {
       console.error("Error setting drink count:", error);
@@ -310,7 +320,11 @@ export function PubTable({
                   ? "border-slate-600"
                   : "border-slate-700"
               }`}
-              style={owner ? { borderLeftColor: owner.color, borderLeftWidth: "4px" } : {}}
+              style={
+                owner
+                  ? { borderLeftColor: owner.color, borderLeftWidth: "4px" }
+                  : {}
+              }
             >
               {editingPub?.id === pub.id ? (
                 <div className="space-y-3">
@@ -381,7 +395,9 @@ export function PubTable({
                       <span className="text-slate-400">Owner:</span>
                       <select
                         value={pub.controlling_team_id || ""}
-                        onChange={(e) => changeOwner(pub.id, e.target.value || null)}
+                        onChange={(e) =>
+                          changeOwner(pub.id, e.target.value || null)
+                        }
                         className="flex-1 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm"
                       >
                         <option value="">None</option>
@@ -396,7 +412,9 @@ export function PubTable({
                       <span className="text-slate-400">Drinks:</span>
                       <div className="flex items-center gap-1">
                         <button
-                          onClick={() => setDrinkCount(pub.id, pub.drink_count - 1)}
+                          onClick={() =>
+                            setDrinkCount(pub.id, pub.drink_count - 1)
+                          }
                           className="w-7 h-7 bg-slate-700 rounded text-white hover:bg-slate-600"
                           disabled={pub.drink_count <= 0}
                         >
@@ -406,7 +424,9 @@ export function PubTable({
                           {pub.drink_count}
                         </span>
                         <button
-                          onClick={() => setDrinkCount(pub.id, pub.drink_count + 1)}
+                          onClick={() =>
+                            setDrinkCount(pub.id, pub.drink_count + 1)
+                          }
                           className="w-7 h-7 bg-slate-700 rounded text-white hover:bg-slate-600"
                         >
                           +

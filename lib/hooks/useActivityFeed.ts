@@ -3,11 +3,40 @@
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
+interface ActivityFeedItem {
+  id: string;
+  type: "capture" | "challenge" | "bonus";
+  created_at: string;
+  pubName?: string | null;
+  challengeDescription?: string | null;
+}
+
+interface CaptureWithRelations {
+  id: string;
+  created_at: string;
+  pub_id: string;
+  pubs?: { name: string } | null;
+}
+
+interface ChallengeAttemptWithRelations {
+  id: string;
+  created_at: string;
+  challenges?: {
+    pub_id?: string;
+    description?: string;
+    pubs?: { name: string } | null;
+  } | null;
+}
+
+interface BonusWithRelations {
+  id: string;
+  created_at: string;
+  challenges?: { description: string } | null;
+}
+
 export function useActivityFeed() {
   const supabase = createSupabaseBrowserClient();
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [feed, setFeed] = useState<any[]>([]);
+  const [feed, setFeed] = useState<ActivityFeedItem[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -22,30 +51,35 @@ export function useActivityFeed() {
       // Create a lookup map for pub names
       const pubNameMap = new Map((pubs ?? []).map(p => [p.id, p.name]));
 
-      const all = [
-        ...(captures ?? []).map((c) => ({
-          ...c,
-          type: "capture",
-          created_at: c.created_at,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          pubName: (c as any).pubs?.name || pubNameMap.get(c.pub_id),
-        })),
-        ...(attempts ?? []).map((a) => ({
-          ...a,
-          type: "challenge",
-          created_at: a.created_at,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          pubName: (a as any).challenges?.pubs?.name,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          challengeDescription: (a as any).challenges?.description,
-        })),
-        ...(bonus ?? []).map((b) => ({
-          ...b,
-          type: "bonus",
-          created_at: b.created_at,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          challengeDescription: (b as any).challenges?.description,
-        })),
+      const all: ActivityFeedItem[] = [
+        ...(captures ?? []).map((c) => {
+          const capture = c as CaptureWithRelations;
+          return {
+            ...c,
+            type: "capture" as const,
+            created_at: c.created_at,
+            pubName: capture.pubs?.name || pubNameMap.get(capture.pub_id),
+          };
+        }),
+        ...(attempts ?? []).map((a) => {
+          const attempt = a as ChallengeAttemptWithRelations;
+          return {
+            ...a,
+            type: "challenge" as const,
+            created_at: a.created_at,
+            pubName: attempt.challenges?.pubs?.name,
+            challengeDescription: attempt.challenges?.description,
+          };
+        }),
+        ...(bonus ?? []).map((b) => {
+          const bonusPoint = b as BonusWithRelations;
+          return {
+            ...b,
+            type: "bonus" as const,
+            created_at: b.created_at,
+            challengeDescription: bonusPoint.challenges?.description,
+          };
+        }),
       ];
 
       setFeed(

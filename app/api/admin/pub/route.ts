@@ -57,7 +57,13 @@ export async function PATCH(req: Request) {
       .eq("id", controlling_team_id)
       .single() : { data: null };
 
-    let updateData: any = {};
+    let updateData: {
+      name?: string;
+      controlling_team_id?: string | null;
+      drink_count?: number;
+      is_locked?: boolean;
+      locked_by_team_id?: string | null;
+    } = {};
     let description = "";
 
     switch (action) {

@@ -14,4 +14,3 @@ export async function GET() {
 
   return NextResponse.json({ publicKey: VAPID_PUBLIC_KEY });
 }
-

@@ -63,9 +63,12 @@ export async function POST(req: Request) {
     }
 
     if (pub.controlling_team_id !== player.team_id) {
-      return new NextResponse("Only the controlling team can attempt this challenge", {
-        status: 403,
-      });
+      return new NextResponse(
+        "Only the controlling team can attempt this challenge",
+        {
+          status: 403,
+        }
+      );
     }
   }
 
@@ -102,11 +105,14 @@ export async function POST(req: Request) {
       .eq("id", pubId)
       .single();
 
-    const teamName = (player.teams as { name: string } | null)?.name || "A team";
+    const teamName =
+      (player.teams as { name: string } | null)?.name || "A team";
     waitUntil(
       sendPushNotificationToOthers(playerId, {
         title: "Pub Locked! 🔒",
-        body: `${teamName} locked ${pub?.name || "a pub"} by completing the challenge!`,
+        body: `${teamName} locked ${
+          pub?.name || "a pub"
+        } by completing the challenge!`,
         tag: `challenge-lock-${pubId}`,
         data: {
           url: "/?tab=activity",
@@ -150,7 +156,8 @@ export async function POST(req: Request) {
     }
 
     // Send push notification for global challenge completion
-    const teamName = (player.teams as { name: string } | null)?.name || "A team";
+    const teamName =
+      (player.teams as { name: string } | null)?.name || "A team";
     waitUntil(
       sendPushNotificationToOthers(playerId, {
         title: "Challenge Completed! ⭐",

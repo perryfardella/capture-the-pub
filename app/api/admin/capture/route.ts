@@ -70,11 +70,20 @@ export async function DELETE(req: Request) {
       }
     }
 
+    interface CaptureWithRelations {
+      id: string;
+      team_id: string;
+      drink_count?: number;
+      players?: { nickname: string } | null;
+      teams?: { name: string } | null;
+      pubs?: { name: string } | null;
+    }
+
     // Get capture details for logging
-    const capture = pubCaptures.find((c) => c.id === captureId);
-    const playerName = (capture as any)?.players?.nickname || "unknown";
-    const teamName = (capture as any)?.teams?.name || "unknown team";
-    const pubName = (capture as any)?.pubs?.name || "pub";
+    const capture = pubCaptures.find((c) => c.id === captureId) as CaptureWithRelations | undefined;
+    const playerName = capture?.players?.nickname || "unknown";
+    const teamName = capture?.teams?.name || "unknown team";
+    const pubName = capture?.pubs?.name || "pub";
 
     // Log admin action with details
     await logAdminAction({

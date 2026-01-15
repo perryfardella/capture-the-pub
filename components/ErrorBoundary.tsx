@@ -17,7 +17,10 @@ interface ErrorBoundaryState {
  * Error boundary to catch and handle React errors gracefully
  * Prevents the entire app from crashing when a component errors
  */
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -50,7 +53,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <div className="text-6xl">😕</div>
             <h1 className="text-2xl font-bold">Oops! Something went wrong</h1>
             <p className="text-muted-foreground">
-              The app encountered an unexpected error. Don't worry, your game data is safe!
+              The app encountered an unexpected error. Don&apos;t worry, your
+              game data is safe!
             </p>
             {this.state.error && (
               <details className="text-left text-sm bg-muted p-4 rounded-lg">
@@ -91,7 +95,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              If the problem persists, try refreshing the page or reinstalling the app.
+              If the problem persists, try refreshing the page or reinstalling
+              the app.
             </p>
           </div>
         </div>

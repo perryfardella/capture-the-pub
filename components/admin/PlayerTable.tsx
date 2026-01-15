@@ -39,14 +39,14 @@ export function PlayerTable({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerId, teamId }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Failed to reassign player:", errorText);
         alert(`Failed to reassign player: ${errorText}`);
         return;
       }
-      
+
       reload();
     } catch (error) {
       console.error("Error reassigning player:", error);
@@ -56,21 +56,21 @@ export function PlayerTable({
 
   async function deletePlayer(playerId: string, nickname: string) {
     if (!confirm(`Delete player "${nickname}"? This cannot be undone.`)) return;
-    
+
     try {
       const response = await fetch("/api/admin/player", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerId }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Failed to delete player:", errorText);
         alert(`Failed to delete player: ${errorText}`);
         return;
       }
-      
+
       reload();
     } catch (error) {
       console.error("Error deleting player:", error);
@@ -164,7 +164,8 @@ export function PlayerTable({
                         {player.nickname}
                       </div>
                       <div className="text-xs text-slate-400">
-                        Joined {new Date(player.created_at).toLocaleDateString()}
+                        Joined{" "}
+                        {new Date(player.created_at).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
@@ -172,7 +173,9 @@ export function PlayerTable({
                   <div className="flex items-center gap-2 shrink-0">
                     <select
                       value={player.team_id}
-                      onChange={(e) => reassignPlayer(player.id, e.target.value)}
+                      onChange={(e) =>
+                        reassignPlayer(player.id, e.target.value)
+                      }
                       className="px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm"
                     >
                       {teams.map((t) => (

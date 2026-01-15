@@ -6,12 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+interface Team {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export default function JoinPage() {
   const supabase = createSupabaseBrowserClient();
   const [nickname, setNickname] = useState("");
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [teams, setTeams] = useState<any[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [teamId, setTeamId] = useState("");
   const [loading, setLoading] = useState(false);
   const [teamsLoading, setTeamsLoading] = useState(true);

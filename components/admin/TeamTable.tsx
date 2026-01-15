@@ -28,14 +28,14 @@ export function TeamTable({
   async function addTeam() {
     if (!newTeamName.trim()) return;
     setSaving(true);
-    
+
     try {
       const response = await fetch("/api/admin/team", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newTeamName.trim(), color: newTeamColor }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Failed to add team:", errorText);
@@ -43,7 +43,7 @@ export function TeamTable({
         setSaving(false);
         return;
       }
-      
+
       setNewTeamName("");
       setNewTeamColor("#3B82F6");
       setShowAddForm(false);
@@ -52,20 +52,24 @@ export function TeamTable({
       console.error("Error adding team:", error);
       alert("Failed to add team. Please try again.");
     }
-    
+
     setSaving(false);
   }
 
   async function updateTeam(team: Team) {
     setSaving(true);
-    
+
     try {
       const response = await fetch("/api/admin/team", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamId: team.id, name: team.name, color: team.color }),
+        body: JSON.stringify({
+          teamId: team.id,
+          name: team.name,
+          color: team.color,
+        }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Failed to update team:", errorText);
@@ -73,34 +77,35 @@ export function TeamTable({
         setSaving(false);
         return;
       }
-      
+
       setEditingTeam(null);
       reload();
     } catch (error) {
       console.error("Error updating team:", error);
       alert("Failed to update team. Please try again.");
     }
-    
+
     setSaving(false);
   }
 
   async function deleteTeam(teamId: string) {
-    if (!confirm("Are you sure? This will affect all players on this team.")) return;
-    
+    if (!confirm("Are you sure? This will affect all players on this team."))
+      return;
+
     try {
       const response = await fetch("/api/admin/team", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ teamId }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Failed to delete team:", errorText);
         alert(`Failed to delete team: ${errorText}`);
         return;
       }
-      
+
       reload();
     } catch (error) {
       console.error("Error deleting team:", error);
@@ -149,14 +154,18 @@ export function TeamTable({
               className="bg-slate-900/50 border-slate-600 text-white"
             />
             <div>
-              <label className="text-sm text-slate-400 block mb-2">Team Color</label>
+              <label className="text-sm text-slate-400 block mb-2">
+                Team Color
+              </label>
               <div className="flex flex-wrap gap-2">
                 {presetColors.map((color) => (
                   <button
                     key={color}
                     onClick={() => setNewTeamColor(color)}
                     className={`w-8 h-8 rounded-lg transition-all ${
-                      newTeamColor === color ? "ring-2 ring-white scale-110" : ""
+                      newTeamColor === color
+                        ? "ring-2 ring-white scale-110"
+                        : ""
                     }`}
                     style={{ backgroundColor: color }}
                   />
@@ -205,7 +214,9 @@ export function TeamTable({
                       key={color}
                       onClick={() => setEditingTeam({ ...editingTeam, color })}
                       className={`w-8 h-8 rounded-lg transition-all ${
-                        editingTeam.color === color ? "ring-2 ring-white scale-110" : ""
+                        editingTeam.color === color
+                          ? "ring-2 ring-white scale-110"
+                          : ""
                       }`}
                       style={{ backgroundColor: color }}
                     />
@@ -265,4 +276,3 @@ export function TeamTable({
     </div>
   );
 }
-

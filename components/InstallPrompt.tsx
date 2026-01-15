@@ -48,10 +48,7 @@ export function InstallPrompt() {
       setDeferredPrompt(null);
     };
 
-    window.addEventListener(
-      "beforeinstallprompt",
-      handleBeforeInstallPrompt
-    );
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
@@ -130,4 +127,3 @@ export function InstallPrompt() {
     </div>
   );
 }
-

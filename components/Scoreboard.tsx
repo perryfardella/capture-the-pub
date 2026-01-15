@@ -18,30 +18,47 @@ interface PrevTeamState {
   rank: number;
 }
 
+interface Team {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface Pub {
+  id: string;
+  controlling_team_id?: string | null;
+}
+
+interface BonusPoint {
+  id: string;
+  team_id: string;
+}
+
+interface Player {
+  id: string;
+  nickname: string;
+  team_id: string;
+}
+
 export function Scoreboard({
   teams,
   pubs,
   bonusPoints,
   playersByTeam,
 }: {
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  teams: any[];
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  pubs: any[];
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  bonusPoints: any[];
-  // TODO
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  playersByTeam: Record<string, any[]>;
+  teams: Team[];
+  pubs: Pub[];
+  bonusPoints: BonusPoint[];
+  playersByTeam: Record<string, Player[]>;
 }) {
   const scores = calculateScores({ teams, pubs, bonusPoints }) as TeamScore[];
-  const maxScore = scores.length > 0 ? Math.max(...scores.map((s) => s.score), 1) : 1;
+  const maxScore =
+    scores.length > 0 ? Math.max(...scores.map((s) => s.score), 1) : 1;
 
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
-  const [animatingScores, setAnimatingScores] = useState<Set<string>>(new Set());
+  const [animatingScores, setAnimatingScores] = useState<Set<string>>(
+    new Set()
+  );
   const [animatingRanks, setAnimatingRanks] = useState<Set<string>>(new Set());
   const prevScoresRef = useRef<Map<string, PrevTeamState>>(new Map());
 
@@ -118,7 +135,8 @@ export function Scoreboard({
     <div className="space-y-3">
       {scores.map((team, i) => {
         const rankIcon = getRankIcon(i);
-        const scorePercentage = maxScore > 0 ? (team.score / maxScore) * 100 : 0;
+        const scorePercentage =
+          maxScore > 0 ? (team.score / maxScore) * 100 : 0;
         const isTopThree = i < 3;
         const isScoreAnimating = animatingScores.has(team.id);
         const isRankAnimating = animatingRanks.has(team.id);
@@ -164,7 +182,9 @@ export function Scoreboard({
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-lg truncate">{team.name}</span>
+                      <span className="font-bold text-lg truncate">
+                        {team.name}
+                      </span>
                       {!rankIcon && (
                         <span className="text-muted-foreground text-sm font-medium">
                           #{i + 1}
@@ -245,7 +265,8 @@ export function Scoreboard({
                       className="flex items-center justify-between w-full text-left group"
                     >
                       <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                        👥 {playerCount} {playerCount === 1 ? "player" : "players"}
+                        👥 {playerCount}{" "}
+                        {playerCount === 1 ? "player" : "players"}
                       </span>
                       <span className="text-muted-foreground group-hover:text-foreground transition-all">
                         {expandedTeams.has(team.id) ? "▲" : "▼"}
@@ -264,7 +285,9 @@ export function Scoreboard({
                               className="w-2 h-2 rounded-full flex-shrink-0"
                               style={{ backgroundColor: team.color }}
                             />
-                            <span className="text-foreground">{player.nickname}</span>
+                            <span className="text-foreground">
+                              {player.nickname}
+                            </span>
                           </div>
                         ))}
                       </div>
