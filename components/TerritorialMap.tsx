@@ -216,9 +216,15 @@ export function TerritorialMap({
         setLocationPermission("granted");
       },
       (error) => {
-        console.error("Error getting location:", error);
+        // Handle permission denied silently - this is expected user behavior
         if (error.code === error.PERMISSION_DENIED) {
           setLocationPermission("denied");
+          return;
+        }
+
+        // Log other location errors (timeout, unavailable, etc.) only in development
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Location access issue:", error.message);
         }
       },
       {

@@ -186,7 +186,7 @@ export default function Home() {
     { id: "map" as const, label: "Map", icon: "🗺️" },
     { id: "scoreboard" as const, label: "Scores", icon: "🏆" },
     { id: "activity" as const, label: "Feed", icon: "📸" },
-    { id: "challenges" as const, label: "Global Challenges", icon: "🎯" },
+    { id: "challenges" as const, label: "Global Challenges", icon: "🌐" },
   ];
 
   const playerTeam = player?.teams;
@@ -299,7 +299,7 @@ export default function Home() {
                                 : "bg-muted text-muted-foreground"
                             }`}
                           >
-                            {isTeamCompleted ? "✓" : "🎯"}
+                            {isTeamCompleted ? "✓" : "🌐"}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-1">
