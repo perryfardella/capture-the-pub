@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -54,6 +54,7 @@ interface Territory {
   polygon: [number, number][];
   color: string;
   teamName?: string;
+  isLocked: boolean;
 }
 
 interface TerritorialMapProps {
@@ -96,7 +97,7 @@ export function TerritorialMap({
     "granted" | "denied" | "prompt" | "unsupported"
   >("prompt");
 
-  // Add popup styles on component mount
+  // Add popup styles and create dot patterns on component mount
   useEffect(() => {
     if (typeof document !== "undefined") {
       const styleId = "territorial-map-popup-styles";
@@ -130,8 +131,77 @@ export function TerritorialMap({
         `;
         document.head.appendChild(styleElement);
       }
+
+      // Create SVG element with pattern definitions
+      const svgId = "territory-dot-patterns";
+      if (!document.getElementById(svgId)) {
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.id = svgId;
+        svg.style.position = "absolute";
+        svg.style.width = "0";
+        svg.style.height = "0";
+
+        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+
+        // Create lock/cross pattern for each team
+        teams.forEach(team => {
+          const pattern = document.createElementNS("http://www.w3.org/2000/svg", "pattern");
+          pattern.id = `dots-${team.id}`;
+          pattern.setAttribute("x", "0");
+          pattern.setAttribute("y", "0");
+          pattern.setAttribute("width", "25");
+          pattern.setAttribute("height", "25");
+          pattern.setAttribute("patternUnits", "userSpaceOnUse");
+
+          // Create crosses (X marks)
+          const line1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line1.setAttribute("x1", "3");
+          line1.setAttribute("y1", "3");
+          line1.setAttribute("x2", "8");
+          line1.setAttribute("y2", "8");
+          line1.setAttribute("stroke", team.color);
+          line1.setAttribute("stroke-width", "1.5");
+          line1.setAttribute("opacity", "0.8");
+
+          const line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line2.setAttribute("x1", "8");
+          line2.setAttribute("y1", "3");
+          line2.setAttribute("x2", "3");
+          line2.setAttribute("y2", "8");
+          line2.setAttribute("stroke", team.color);
+          line2.setAttribute("stroke-width", "1.5");
+          line2.setAttribute("opacity", "0.8");
+
+          const line3 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line3.setAttribute("x1", "16");
+          line3.setAttribute("y1", "16");
+          line3.setAttribute("x2", "21");
+          line3.setAttribute("y2", "21");
+          line3.setAttribute("stroke", team.color);
+          line3.setAttribute("stroke-width", "1.5");
+          line3.setAttribute("opacity", "0.8");
+
+          const line4 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line4.setAttribute("x1", "21");
+          line4.setAttribute("y1", "16");
+          line4.setAttribute("x2", "16");
+          line4.setAttribute("y2", "21");
+          line4.setAttribute("stroke", team.color);
+          line4.setAttribute("stroke-width", "1.5");
+          line4.setAttribute("opacity", "0.8");
+
+          pattern.appendChild(line1);
+          pattern.appendChild(line2);
+          pattern.appendChild(line3);
+          pattern.appendChild(line4);
+          defs.appendChild(pattern);
+        });
+
+        svg.appendChild(defs);
+        document.body.appendChild(svg);
+      }
     }
-  }, []);
+  }, [teams]);
 
   // Get user location
   useEffect(() => {
@@ -222,6 +292,7 @@ export function TerritorialMap({
               ? teamColorsMap[pub.controlling_team_id]
               : null) || "#f8f9fa",
           teamName: teams.find((t) => t.id === pub.controlling_team_id)?.name,
+          isLocked: pub.is_locked,
         });
       }
 
@@ -356,19 +427,54 @@ export function TerritorialMap({
         <MapBoundsHandler pubs={pubsWithCoords} />
 
         {/* Render territories */}
-        {territories.map((territory) => (
-          <Polygon
-            key={territory.pubId}
-            positions={territory.polygon}
-            pathOptions={{
-              fillColor: territory.color,
-              fillOpacity: 0.3,
-              color: territory.color,
-              weight: 1,
-              opacity: 0.6,
-            }}
-          />
-        ))}
+        {territories.map((territory) => {
+          const pub = pubsWithCoords.find(p => p.id === territory.pubId);
+
+          if (territory.isLocked && pub?.controlling_team_id) {
+            // Locked territories with cross pattern
+            return (
+              <React.Fragment key={territory.pubId}>
+                {/* Base solid fill */}
+                <Polygon
+                  positions={territory.polygon}
+                  pathOptions={{
+                    fillColor: territory.color,
+                    fillOpacity: 0.25,
+                    color: territory.color,
+                    weight: 2,
+                    opacity: 0.8,
+                  }}
+                />
+                {/* Cross pattern overlay */}
+                <Polygon
+                  positions={territory.polygon}
+                  pathOptions={{
+                    fillColor: `url(#dots-${pub.controlling_team_id})`,
+                    fillOpacity: 1,
+                    color: territory.color,
+                    weight: 2,
+                    opacity: 0.8,
+                  }}
+                />
+              </React.Fragment>
+            );
+          }
+
+          // Normal unlocked territories
+          return (
+            <Polygon
+              key={territory.pubId}
+              positions={territory.polygon}
+              pathOptions={{
+                fillColor: territory.color,
+                fillOpacity: 0.3,
+                color: territory.color,
+                weight: 1,
+                opacity: 0.6,
+              }}
+            />
+          );
+        })}
 
         {/* Render user location marker */}
         {userLocation && (
