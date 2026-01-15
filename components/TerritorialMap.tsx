@@ -432,7 +432,7 @@ export function TerritorialMap({
                   )}
                 </div>
 
-                {pub.challenge && (
+                {pub.challenge && !pub.is_locked && (
                   <div className="bg-amber-50 border border-amber-200 rounded p-2">
                     <div className="flex items-center justify-center gap-1">
                       <span>🎯</span>
