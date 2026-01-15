@@ -8,7 +8,9 @@ export async function PATCH(req: Request) {
     const { playerId, teamId } = await req.json();
 
     if (!playerId || !teamId) {
-      return new NextResponse("Player ID and Team ID are required", { status: 400 });
+      return new NextResponse("Player ID and Team ID are required", {
+        status: 400,
+      });
     }
 
     // Get player and team info for detailed logging
@@ -31,13 +33,17 @@ export async function PATCH(req: Request) {
 
     if (error) {
       console.error("Error updating player team:", error);
-      return new NextResponse(`Database error: ${error.message}`, { status: 500 });
+      return new NextResponse(`Database error: ${error.message}`, {
+        status: 500,
+      });
     }
 
     // Log admin action with specific details
     await logAdminAction({
       action_type: "player_reassign",
-      description: `Admin reassigned ${player?.nickname || "player"} to ${team?.name || "team"}`,
+      description: `reassigned ${player?.nickname || "player"} to ${
+        team?.name || "team"
+      }`,
       player_id: playerId,
       team_id: teamId,
     });
@@ -81,13 +87,15 @@ export async function DELETE(req: Request) {
 
     if (error) {
       console.error("Error deleting player:", error);
-      return new NextResponse(`Database error: ${error.message}`, { status: 500 });
+      return new NextResponse(`Database error: ${error.message}`, {
+        status: 500,
+      });
     }
 
     // Log admin action with player name
     await logAdminAction({
       action_type: "player_delete",
-      description: `Admin deleted player ${player?.nickname || "unknown"}`,
+      description: `deleted player ${player?.nickname || "unknown"}`,
       player_id: playerId,
       team_id: player?.team_id || null,
       metadata: { nickname: player?.nickname },

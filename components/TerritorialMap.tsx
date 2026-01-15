@@ -41,12 +41,17 @@ interface Challenge {
 interface Pub {
   id: string;
   name: string;
+  latitude?: number;
+  longitude?: number;
+  drink_count: number;
+  controlling_team_id?: string | null;
+  is_locked: boolean;
+  challenge?: Challenge | null;
+}
+
+interface PubWithCoords extends Pub {
   latitude: number;
   longitude: number;
-  drink_count: number;
-  controlling_team_id?: string;
-  is_locked: boolean;
-  challenge?: Challenge;
 }
 
 interface Territory {
@@ -70,7 +75,10 @@ function MapBoundsHandler({ pubs }: { pubs: Pub[] }) {
   useEffect(() => {
     if (pubs.length === 0) return;
 
-    const pubsWithCoords = pubs.filter((p) => p.latitude && p.longitude);
+    const pubsWithCoords = pubs.filter(
+      (p): p is PubWithCoords =>
+        p.latitude !== undefined && p.longitude !== undefined
+    );
     if (pubsWithCoords.length === 0) return;
 
     const bounds = L.latLngBounds(
@@ -252,9 +260,9 @@ export function TerritorialMap({
   const pubsWithCoords = useMemo(
     () =>
       pubs.filter(
-        (pub) =>
-          pub.latitude &&
-          pub.longitude &&
+        (pub): pub is PubWithCoords =>
+          pub.latitude !== undefined &&
+          pub.longitude !== undefined &&
           !isNaN(pub.latitude) &&
           !isNaN(pub.longitude)
       ),
