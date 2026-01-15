@@ -45,6 +45,7 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
   const [newItemIds, setNewItemIds] = useState<Set<string>>(new Set());
   const prevFeedIdsRef = useRef<Set<string>>(new Set());
   const isInitialLoadRef = useRef(true);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track new items for animation
   useEffect(() => {
@@ -67,12 +68,30 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
     });
 
     if (newIds.size > 0) {
-      setNewItemIds(newIds);
-      // Clear animation state after animation completes
-      setTimeout(() => setNewItemIds(new Set()), 800);
+      // Use queueMicrotask to defer state update to avoid synchronous setState warning
+      queueMicrotask(() => {
+        setNewItemIds(newIds);
+
+        // Clear any existing timeout
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+
+        // Clear animation state after animation completes
+        timeoutRef.current = setTimeout(() => {
+          setNewItemIds(new Set());
+        }, 800);
+      });
     }
 
     prevFeedIdsRef.current = currentIds;
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, [feed]);
 
   const getItemIcon = (type: string, step?: string, success?: boolean) => {
@@ -113,7 +132,8 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
           const itemKey = item.id + item.type;
           const isNew = newItemIds.has(itemKey);
           // Admin actions get a special purple color
-          const teamColor = item.type === "admin" ? "#9333ea" : (item.teams?.color || "#666");
+          const teamColor =
+            item.type === "admin" ? "#9333ea" : item.teams?.color || "#666";
 
           return (
             <div
@@ -177,7 +197,7 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                               {item.step === "start"
                                 ? "started"
                                 : item.success
-                                ? "completed"
+                                ? "completed the"
                                 : "failed"}{" "}
                             </span>
                             {item.pubName ? (
@@ -218,7 +238,8 @@ export function ActivityFeed({ feed }: { feed: any[] }) {
                             {item.challengeDescription && (
                               <span className="text-muted-foreground">
                                 {" "}
-                                for {item.challengeDescription}
+                                for the global challenge -{" "}
+                                {item.challengeDescription}
                               </span>
                             )}
                           </>

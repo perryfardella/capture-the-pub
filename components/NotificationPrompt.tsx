@@ -7,31 +7,29 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 
 export function NotificationPrompt() {
-  const { isSupported, permission, isSubscribed, subscribe, requestPermission, isLoading } =
-    usePushNotifications();
+  const {
+    isSupported,
+    permission,
+    isSubscribed,
+    subscribe,
+    requestPermission,
+    isLoading,
+  } = usePushNotifications();
   const { player } = usePlayer();
-  const [dismissed, setDismissed] = useState(false);
 
-  // Check if user has previously dismissed the prompt
-  useEffect(() => {
+  // Initialize state based on user's previous preference
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
     const dismissed = localStorage.getItem("notification-prompt-dismissed");
-    if (dismissed === "true") {
-      setDismissed(true);
-    }
-  }, []);
-
+    return dismissed === "true";
+  });
 
   // Don't show if:
   // - Not supported
   // - Already subscribed
   // - Permission denied
   // - User dismissed it
-  if (
-    !isSupported ||
-    isSubscribed ||
-    permission === "denied" ||
-    dismissed
-  ) {
+  if (!isSupported || isSubscribed || permission === "denied" || dismissed) {
     return null;
   }
 
@@ -53,11 +51,13 @@ export function NotificationPrompt() {
       // Use the hook's requestPermission function to keep state in sync
       // This calls Notification.requestPermission() internally
       const granted = await requestPermission();
-      
+
       if (!granted) {
         const currentPermission = Notification.permission;
         if (currentPermission === "denied") {
-          alert("Notification permission was denied. Please enable it in your browser settings.");
+          alert(
+            "Notification permission was denied. Please enable it in your browser settings."
+          );
         } else {
           alert("Notification permission was not granted. Please try again.");
         }
@@ -73,7 +73,8 @@ export function NotificationPrompt() {
         alert("Failed to enable notifications. Please try again.");
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       alert(`Error enabling notifications: ${errorMessage}`);
     }
   };
@@ -123,4 +124,3 @@ export function NotificationPrompt() {
     </div>
   );
 }
-

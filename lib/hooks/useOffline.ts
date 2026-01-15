@@ -14,14 +14,7 @@ export function useOffline() {
     const onOnline = () => setOffline(false);
     const onOffline = () => setOffline(true);
 
-    // Set initial state based on navigator.onLine (only runs on client)
-    // Use setTimeout to make this asynchronous and avoid linter warning
-    if (typeof navigator !== "undefined") {
-      setTimeout(() => {
-        setOffline(!navigator.onLine);
-      }, 0);
-    }
-
+    // Subscribe to online/offline events
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
 

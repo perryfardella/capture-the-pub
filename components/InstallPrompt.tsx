@@ -12,13 +12,22 @@ interface BeforeInstallPromptEvent extends Event {
 export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
+
+  // Initialize state based on install status and user preference
+  const [showPrompt, setShowPrompt] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const dismissed = localStorage.getItem("install-prompt-dismissed");
+    return dismissed !== "true";
+  });
+
+  const [isInstalled, setIsInstalled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(display-mode: standalone)").matches;
+  });
 
   useEffect(() => {
-    // Check if already installed
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setIsInstalled(true);
+    // If already installed, don't show prompt
+    if (isInstalled) {
       return;
     }
 
@@ -45,12 +54,6 @@ export function InstallPrompt() {
     );
     window.addEventListener("appinstalled", handleAppInstalled);
 
-    // Check if user has dismissed before
-    const dismissed = localStorage.getItem("install-prompt-dismissed");
-    if (dismissed === "true") {
-      setShowPrompt(false);
-    }
-
     return () => {
       window.removeEventListener(
         "beforeinstallprompt",
@@ -58,7 +61,7 @@ export function InstallPrompt() {
       );
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, []);
+  }, [isInstalled]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) {

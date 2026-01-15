@@ -93,9 +93,16 @@ export function TerritorialMap({
   const [userLocation, setUserLocation] = useState<[number, number] | null>(
     null
   );
+
+  // Initialize location permission state based on navigator availability
   const [locationPermission, setLocationPermission] = useState<
     "granted" | "denied" | "prompt" | "unsupported"
-  >("prompt");
+  >(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      return "unsupported";
+    }
+    return "prompt";
+  });
 
   // Add popup styles and create dot patterns on component mount
   useEffect(() => {
@@ -205,8 +212,8 @@ export function TerritorialMap({
 
   // Get user location
   useEffect(() => {
+    // Skip if geolocation is not available (already handled in state initialization)
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setLocationPermission("unsupported");
       return;
     }
 

@@ -331,7 +331,11 @@ export function ChallengeDialog({
 
       <DialogContent className="sm:max-w-md">
         <DialogTitle className="text-center text-xl">
-          {showSuccess ? "🎉 Challenge Complete!" : pubName ? `${pubName} Challenge` : "Pub Challenge"}
+          {showSuccess
+            ? "🎉 Challenge Complete!"
+            : pubName
+            ? `${pubName} Challenge`
+            : "Pub Challenge"}
         </DialogTitle>
         <DialogDescription className="text-center">
           {showSuccess
@@ -378,7 +382,8 @@ export function ChallengeDialog({
             <>
               <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 text-center mb-2">
                 <p className="text-sm font-medium">
-                  Complete this challenge to <strong>lock the pub</strong> for your team
+                  Complete this challenge to <strong>lock the pub</strong> for
+                  your team
                 </p>
               </div>
 
