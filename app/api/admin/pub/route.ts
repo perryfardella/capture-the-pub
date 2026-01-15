@@ -11,13 +11,13 @@ export async function POST(req: Request) {
       return new NextResponse("Name is required", { status: 400 });
     }
 
-    const { error } = await supabase
-      .from("pubs")
-      .insert({ name: name.trim() });
+    const { error } = await supabase.from("pubs").insert({ name: name.trim() });
 
     if (error) {
       console.error("Error creating pub:", error);
-      return new NextResponse(`Database error: ${error.message}`, { status: 500 });
+      return new NextResponse(`Database error: ${error.message}`, {
+        status: 500,
+      });
     }
 
     return NextResponse.json({ success: true });
@@ -30,14 +30,14 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   try {
     const supabase = createSupabaseServiceRoleClient();
-    const { 
-      pubId, 
-      name, 
-      controlling_team_id, 
-      drink_count, 
-      is_locked, 
+    const {
+      pubId,
+      name,
+      controlling_team_id,
+      drink_count,
+      is_locked,
       locked_by_team_id,
-      action 
+      action,
     } = await req.json();
 
     if (!pubId) {
@@ -51,11 +51,13 @@ export async function PATCH(req: Request) {
       .eq("id", pubId)
       .single();
 
-    const { data: team } = controlling_team_id ? await supabase
-      .from("teams")
-      .select("name")
-      .eq("id", controlling_team_id)
-      .single() : { data: null };
+    const { data: team } = controlling_team_id
+      ? await supabase
+          .from("teams")
+          .select("name")
+          .eq("id", controlling_team_id)
+          .single()
+      : { data: null };
 
     let updateData: {
       name?: string;
@@ -70,26 +72,33 @@ export async function PATCH(req: Request) {
       case "update_name":
         if (!name) return new NextResponse("Name is required", { status: 400 });
         updateData = { name };
-        description = `Admin renamed ${pub?.name || "pub"} to ${name}`;
+        description = `renamed ${pub?.name || "pub"} to ${name}`;
         break;
       case "change_owner":
         updateData = { controlling_team_id: controlling_team_id || null };
         if (controlling_team_id) {
-          description = `Admin changed ${pub?.name || "pub"} owner to ${team?.name || "team"}`;
+          description = `changed ${pub?.name || "pub"} owner to ${
+            team?.name || "team"
+          }`;
         } else {
-          description = `Admin removed owner from ${pub?.name || "pub"}`;
+          description = `removed owner from ${pub?.name || "pub"}`;
         }
         break;
       case "set_drink_count":
-        if (drink_count < 0) return new NextResponse("Drink count cannot be negative", { status: 400 });
+        if (drink_count < 0)
+          return new NextResponse("Drink count cannot be negative", {
+            status: 400,
+          });
         updateData = { drink_count };
-        description = `Admin updated drink count at ${pub?.name || "pub"} to ${drink_count}`;
+        description = `updated drink count at ${
+          pub?.name || "pub"
+        } to ${drink_count}`;
         break;
       case "toggle_lock":
         updateData = { is_locked };
         description = is_locked
-          ? `Admin locked ${pub?.name || "pub"}`
-          : `Admin unlocked ${pub?.name || "pub"}`;
+          ? `locked ${pub?.name || "pub"}`
+          : `unlocked ${pub?.name || "pub"}`;
         break;
       case "reset":
         updateData = {
@@ -98,7 +107,7 @@ export async function PATCH(req: Request) {
           is_locked: false,
           locked_by_team_id: null,
         };
-        description = `Admin reset ${pub?.name || "pub"}`;
+        description = `reset ${pub?.name || "pub"}`;
         break;
       default:
         return new NextResponse("Invalid action", { status: 400 });
@@ -111,7 +120,9 @@ export async function PATCH(req: Request) {
 
     if (error) {
       console.error("Error updating pub:", error);
-      return new NextResponse(`Database error: ${error.message}`, { status: 500 });
+      return new NextResponse(`Database error: ${error.message}`, {
+        status: 500,
+      });
     }
 
     await logAdminAction({
@@ -146,7 +157,10 @@ export async function DELETE(req: Request) {
 
     if (capturesError) {
       console.error("Error deleting captures:", capturesError);
-      return new NextResponse(`Error deleting captures: ${capturesError.message}`, { status: 500 });
+      return new NextResponse(
+        `Error deleting captures: ${capturesError.message}`,
+        { status: 500 }
+      );
     }
 
     // Delete the pub
@@ -157,7 +171,9 @@ export async function DELETE(req: Request) {
 
     if (pubError) {
       console.error("Error deleting pub:", pubError);
-      return new NextResponse(`Database error: ${pubError.message}`, { status: 500 });
+      return new NextResponse(`Database error: ${pubError.message}`, {
+        status: 500,
+      });
     }
 
     return NextResponse.json({ success: true });
