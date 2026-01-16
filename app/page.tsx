@@ -252,8 +252,15 @@ export default function Home() {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === "map" && <TerritorialMap pubs={pubs} teams={teams} playerTeamId={player?.team_id} />}
+      {/* Map tab - no padding, fills space */}
+      {activeTab === "map" && (
+        <div className="flex-1 min-h-0">
+          <TerritorialMap pubs={pubs} teams={teams} playerTeamId={player?.team_id} />
+        </div>
+      )}
+
+      {/* Other tabs - with padding and scroll */}
+      <div className={`flex-1 overflow-y-auto p-4 ${activeTab === "map" ? "hidden" : ""}`}>
         {activeTab === "scoreboard" && (
           <Scoreboard
             teams={teams}
