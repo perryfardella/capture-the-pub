@@ -202,7 +202,7 @@ export default function Home() {
   return (
     <div className="flex flex-col h-screen pb-[max(5rem,calc(5rem+env(safe-area-inset-bottom)))]">
       {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur-sm px-4 py-3 sticky top-0 z-10">
+      <header className="border-b bg-background/95 backdrop-blur-sm px-4 py-3 sticky top-0 z-10 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
