@@ -94,14 +94,11 @@ export function PushNotificationDebug() {
   };
 
   // Show debug panel ONLY if debug query param is present
-  const [showDebug, setShowDebug] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      setShowDebug(params.has("debug"));
-    }
-  }, []);
+  const [showDebug, setShowDebug] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const params = new URLSearchParams(window.location.search);
+    return params.has("debug");
+  });
 
   if (!showDebug) {
     return null;

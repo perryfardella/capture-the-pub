@@ -83,13 +83,17 @@ export function Scoreboard({
     });
 
     if (newAnimatingScores.size > 0) {
-      setAnimatingScores(newAnimatingScores);
-      setTimeout(() => setAnimatingScores(new Set()), 500);
+      queueMicrotask(() => {
+        setAnimatingScores(newAnimatingScores);
+        setTimeout(() => setAnimatingScores(new Set()), 500);
+      });
     }
 
     if (newAnimatingRanks.size > 0) {
-      setAnimatingRanks(newAnimatingRanks);
-      setTimeout(() => setAnimatingRanks(new Set()), 800);
+      queueMicrotask(() => {
+        setAnimatingRanks(newAnimatingRanks);
+        setTimeout(() => setAnimatingRanks(new Set()), 800);
+      });
     }
 
     // Update previous state

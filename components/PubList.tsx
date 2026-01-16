@@ -72,15 +72,19 @@ export function PubList({ pubs, teams, playerTeamId }: PubListProps) {
     }
 
     if (newAnimatingPubs.size > 0) {
-      setAnimatingPubs(newAnimatingPubs);
-      // Clear after animation completes
-      setTimeout(() => setAnimatingPubs(new Set()), 800);
+      queueMicrotask(() => {
+        setAnimatingPubs(newAnimatingPubs);
+        // Clear after animation completes
+        setTimeout(() => setAnimatingPubs(new Set()), 800);
+      });
     }
 
     if (newAnimatingDrinks.size > 0) {
-      setAnimatingDrinks(newAnimatingDrinks);
-      // Clear after animation completes
-      setTimeout(() => setAnimatingDrinks(new Set()), 400);
+      queueMicrotask(() => {
+        setAnimatingDrinks(newAnimatingDrinks);
+        // Clear after animation completes
+        setTimeout(() => setAnimatingDrinks(new Set()), 400);
+      });
     }
 
     // Update previous state

@@ -15,12 +15,6 @@ export function ServiceWorkerRegistration() {
     // In development, the hook will handle registration when needed
 
     if ("serviceWorker" in navigator) {
-      // Check if running as PWA
-      const isPWA =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as any).standalone === true ||
-        document.referrer.includes("android-app://");
-
       // Wait for page to load
       const registerSW = async () => {
         try {

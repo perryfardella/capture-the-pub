@@ -7,7 +7,7 @@ export interface LogAdminActionParams {
   player_id?: string | null;
   pub_id?: string | null;
   challenge_id?: string | null;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
