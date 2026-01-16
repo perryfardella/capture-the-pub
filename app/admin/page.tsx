@@ -169,7 +169,7 @@ export default function AdminPage() {
 
   if (!authorized) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+      <div className="h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center space-y-2">
             <div className="text-5xl mb-4">🎮</div>
@@ -256,7 +256,7 @@ export default function AdminPage() {
   const capturedPubs = pubs.filter((p) => p.controlling_team_id).length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="h-full overflow-y-auto bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-lg bg-slate-900/80 border-b border-slate-700">
         <div className="px-4 py-3">

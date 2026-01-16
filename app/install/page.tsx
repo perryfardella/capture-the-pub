@@ -113,7 +113,7 @@ export default function InstallPage() {
   // Installing state - show "don't close browser" message
   if (installState === "installing") {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50 flex flex-col items-center justify-center p-6">
+      <div className="h-full overflow-y-auto bg-gradient-to-b from-amber-50 to-orange-50 flex flex-col items-center justify-center p-6">
         <div className="text-center space-y-6 max-w-sm">
           {/* Animated beer */}
           <div className="relative">
@@ -163,7 +163,7 @@ export default function InstallPage() {
     const isCountdownComplete = countdown === 0;
 
     return (
-      <div className="min-h-screen bg-gradient-to-b from-green-50 to-emerald-50 flex flex-col items-center justify-center p-6">
+      <div className="h-full overflow-y-auto bg-gradient-to-b from-green-50 to-emerald-50 flex flex-col items-center justify-center p-6">
         <div className="text-center space-y-6 max-w-sm animate-in zoom-in-50 duration-500">
           {/* Celebration */}
           <div className="text-8xl">{isCountdownComplete ? "🎉" : "⏳"}</div>
@@ -207,7 +207,7 @@ export default function InstallPage() {
 
   // Ready state - show install instructions
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50">
+    <div className="h-full overflow-y-auto bg-gradient-to-b from-amber-50 to-orange-50">
       {/* Hero Section */}
       <div className="px-6 pt-12 pb-8 text-center">
         <div className="text-7xl mb-4">🍻</div>

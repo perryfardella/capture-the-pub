@@ -122,7 +122,7 @@ export default function JoinPage() {
   const canJoin = nickname.trim().length > 0 && teamId;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50">
+    <div className="h-full overflow-y-auto bg-gradient-to-b from-amber-50 to-orange-50">
       {/* Hero */}
       <div className="px-6 pt-10 pb-6 text-center animate-in fade-in slide-in-from-top-4 duration-500">
         <button
