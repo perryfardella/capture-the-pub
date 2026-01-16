@@ -103,7 +103,6 @@ export function ChatPanel() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-    addOptimisticMessage,
   } = useChatMessages();
 
   const [messageText, setMessageText] = useState("");
@@ -247,10 +246,8 @@ export function ChatPanel() {
         return;
       }
 
-      const { message } = await res.json();
-
-      // Add to UI optimistically
-      addOptimisticMessage(message);
+      // Message will appear via realtime subscription
+      // No need for optimistic update - realtime is fast enough
 
       // Clear media preview
       clearPendingMedia();
