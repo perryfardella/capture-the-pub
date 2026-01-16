@@ -2,6 +2,7 @@
 
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { ChallengeDialog } from "@/components/ChallengeDialog";
+import { ChatPanel } from "@/components/ChatPanel";
 import { Scoreboard } from "@/components/Scoreboard";
 import dynamic from "next/dynamic";
 
@@ -53,7 +54,7 @@ export default function Home() {
   const [globalChallenges, setGlobalChallenges] = useState<Challenge[]>([]);
   const [playersByTeam, setPlayersByTeam] = useState<Record<string, Player[]>>({});
   const [activeTab, setActiveTab] = useState<
-    "map" | "scoreboard" | "activity" | "challenges"
+    "map" | "scoreboard" | "activity" | "chat" | "challenges"
   >("map");
 
   // Secret admin access - tap beer emoji 5 times quickly
@@ -192,7 +193,8 @@ export default function Home() {
     { id: "map" as const, label: "Map", icon: "🗺️" },
     { id: "scoreboard" as const, label: "Scores", icon: "🏆" },
     { id: "activity" as const, label: "Feed", icon: "📸" },
-    { id: "challenges" as const, label: "Global Challenges", icon: "🌐" },
+    { id: "chat" as const, label: "Chat", icon: "💬" },
+    { id: "challenges" as const, label: "Challenges", icon: "🌐" },
   ];
 
   const playerTeam = player?.teams;
@@ -261,6 +263,7 @@ export default function Home() {
           />
         )}
         {activeTab === "activity" && <ActivityFeed feed={feed} />}
+        {activeTab === "chat" && <ChatPanel />}
         {activeTab === "challenges" && (
           <div className="space-y-6">
             {/* Active Challenges */}
@@ -355,7 +358,7 @@ export default function Home() {
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur-sm">
-        <div className="grid grid-cols-4 gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="grid grid-cols-5 gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -386,7 +389,7 @@ export default function Home() {
                     isActive ? "font-semibold" : "font-medium"
                   }`}
                 >
-                  {tab.id === "challenges" ? "Challenges" : tab.label}
+                  {tab.label}
                 </span>
               </button>
             );
