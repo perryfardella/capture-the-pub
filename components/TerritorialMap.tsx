@@ -68,6 +68,31 @@ interface TerritorialMapProps {
   playerTeamId?: string;
 }
 
+// Component to handle map resize when container changes
+function MapResizeHandler() {
+  const map = useMap();
+
+  useEffect(() => {
+    // Invalidate size on mount after a brief delay to let layout settle
+    const timeoutId = setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
+    // Also invalidate on window resize
+    const handleResize = () => {
+      map.invalidateSize();
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [map]);
+
+  return null;
+}
+
 // Component to handle map bounds fitting
 function MapBoundsHandler({ pubs }: { pubs: Pub[] }) {
   const map = useMap();
@@ -431,7 +456,7 @@ export function TerritorialMap({
   }
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
+    <div className="absolute inset-0 overflow-hidden">
       <MapContainer
         center={center}
         zoom={15}
@@ -445,6 +470,7 @@ export function TerritorialMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
+        <MapResizeHandler />
         <MapBoundsHandler pubs={pubsWithCoords} />
 
         {/* Render territories */}
