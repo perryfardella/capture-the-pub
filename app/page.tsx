@@ -27,8 +27,8 @@ import { useRealtimeGame } from "@/lib/hooks/useRealtimeGame";
 import { useActivityFeedQuery } from "@/lib/hooks/useActivityFeedQuery";
 import { useSubscriptionHealthCheck } from "@/lib/hooks/useSubscriptionHealthCheck";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 
 interface Challenge {
   id: string;
@@ -42,7 +42,7 @@ interface Player {
   team_id: string;
 }
 
-export default function Home() {
+function HomeContent() {
   const { player, loading } = usePlayer();
   const { pubs, bonusPoints, teams } = useRealtimeGame();
   const { feed } = useActivityFeedQuery();
@@ -51,11 +51,27 @@ export default function Home() {
 
   // Monitor push notification subscription health and auto re-subscribe if expired
   useSubscriptionHealthCheck();
+  const searchParams = useSearchParams();
   const [globalChallenges, setGlobalChallenges] = useState<Challenge[]>([]);
   const [playersByTeam, setPlayersByTeam] = useState<Record<string, Player[]>>({});
   const [activeTab, setActiveTab] = useState<
     "map" | "scoreboard" | "activity" | "chat" | "challenges"
-  >("map");
+  >(() => {
+    // Check URL for tab parameter (e.g., from push notification)
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "chat" || tabParam === "map" || tabParam === "scoreboard" || tabParam === "activity" || tabParam === "challenges") {
+      return tabParam;
+    }
+    return "map";
+  });
+
+  // Handle tab parameter changes (e.g., from push notification navigation)
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "chat" || tabParam === "map" || tabParam === "scoreboard" || tabParam === "activity" || tabParam === "challenges") {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   // Secret admin access - tap beer emoji 5 times quickly
   const secretTapCountRef = useRef(0);
@@ -409,5 +425,13 @@ export default function Home() {
       {/* Debug Panel (only shows with ?debug query param) */}
       <PushNotificationDebug />
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
   );
 }

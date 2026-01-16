@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServiceRoleClient } from "@/lib/supabase/server";
+import { sendPushNotificationToOthers } from "@/lib/utils/push-notifications";
+import { waitUntil } from "@vercel/functions";
 
 export async function POST(req: Request) {
   const supabase = createSupabaseServiceRoleClient();
@@ -50,6 +52,29 @@ export async function POST(req: Request) {
     console.error("Failed to insert chat message:", insertError);
     return new NextResponse("Failed to send message", { status: 500 });
   }
+
+  // Send push notification to all other players
+  const senderName = player.nickname;
+  const notificationBody = content?.trim()
+    ? content.trim().length > 100
+      ? content.trim().substring(0, 100) + "..."
+      : content.trim()
+    : "Sent a photo 📷";
+
+  waitUntil(
+    sendPushNotificationToOthers(playerId, {
+      title: senderName,
+      body: notificationBody,
+      tag: "chat-message",
+      data: {
+        url: "/?tab=chat",
+        type: "chat",
+        messageId: message.id,
+      },
+    }).catch((error) => {
+      console.error("Error sending chat push notification:", error);
+    })
+  );
 
   return NextResponse.json({ message });
 }
