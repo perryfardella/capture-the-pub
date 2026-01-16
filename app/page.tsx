@@ -200,7 +200,7 @@ export default function Home() {
   const playerTeam = player?.teams;
 
   return (
-    <div className="flex flex-col h-dvh pb-[max(5rem,calc(5rem+env(safe-area-inset-bottom)))] overflow-hidden">
+    <div className="flex flex-col h-dvh overflow-hidden">
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur-sm px-4 py-3 sticky top-0 z-10 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between">
@@ -360,7 +360,7 @@ export default function Home() {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur-sm">
+      <div className="shrink-0 border-t bg-background/95 backdrop-blur-sm">
         <div className="grid grid-cols-5 gap-1 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
