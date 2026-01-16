@@ -96,14 +96,16 @@ function MessageBubble({
 }
 
 export function ChatPanel() {
-  const { player } = usePlayer();
+  const { player, loading: playerLoading } = usePlayer();
   const {
     messages,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isLoading,
+    isLoading: messagesLoading,
   } = useChatMessages();
+
+  const isLoading = playerLoading || messagesLoading;
 
   const [messageText, setMessageText] = useState("");
   const [pendingMedia, setPendingMedia] = useState<File | null>(null);
