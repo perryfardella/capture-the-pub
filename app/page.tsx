@@ -200,7 +200,7 @@ export default function Home() {
   const playerTeam = player?.teams;
 
   return (
-    <div className="flex flex-col h-screen pb-[max(5rem,calc(5rem+env(safe-area-inset-bottom)))]">
+    <div className="flex flex-col h-dvh pb-[max(5rem,calc(5rem+env(safe-area-inset-bottom)))] overflow-hidden">
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur-sm px-4 py-3 sticky top-0 z-10 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between">
@@ -253,7 +253,7 @@ export default function Home() {
       )}
 
       {/* Content area */}
-      <div className={`flex-1 min-h-0 ${activeTab === "map" ? "" : "overflow-y-auto p-4"}`}>
+      <div className={`flex-1 min-h-0 ${activeTab === "map" ? "overflow-hidden" : "overflow-y-auto p-4"}`}>
         {activeTab === "map" && (
           <TerritorialMap pubs={pubs} teams={teams} playerTeamId={player?.team_id} />
         )}
