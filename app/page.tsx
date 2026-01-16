@@ -200,9 +200,9 @@ export default function Home() {
   const playerTeam = player?.teams;
 
   return (
-    <div className="flex flex-col h-dvh overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <header className="border-b bg-background/95 backdrop-blur-sm px-4 py-3 sticky top-0 z-10 pt-[max(0.75rem,env(safe-area-inset-top))]">
+      <header className="shrink-0 border-b bg-background/95 backdrop-blur-sm px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button

@@ -51,9 +51,11 @@ export default function RootLayout({
         <QueryProvider>
           <ServiceWorkerRegistration />
           <ErrorBoundary>
-            <div className="mx-auto max-w-md min-h-dvh">
+            <div className="mx-auto max-w-md h-dvh flex flex-col overflow-hidden">
               <GameStatusBanner />
-              {children}
+              <div className="flex-1 min-h-0 flex flex-col">
+                {children}
+              </div>
             </div>
           </ErrorBoundary>
         </QueryProvider>

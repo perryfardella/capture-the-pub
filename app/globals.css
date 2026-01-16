@@ -124,6 +124,35 @@
   }
 }
 
+/* PWA optimizations */
+html, body {
+  /* Prevent pull-to-refresh on mobile */
+  overscroll-behavior: none;
+  /* Prevent iOS text size adjust */
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Prevent tap highlight on interactive elements */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent text selection on UI elements (not inputs) */
+button, nav, header, [role="button"], [role="tab"] {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Prevent callout on long-press for images */
+img {
+  -webkit-touch-callout: none;
+}
+
+/* Smoother touch scrolling */
+.overflow-y-auto, .overflow-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Realtime update animations */
 @keyframes realtime-flash {
   0% {
